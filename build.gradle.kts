@@ -1,6 +1,13 @@
 // Top-level build file
 plugins {
-  // Versions pinned via settings pluginManagement; we apply in subprojects
+  // Apply plugins with versions to avoid duplication in subprojects
+  alias(libs.plugins.androidApplication) apply false
+  alias(libs.plugins.androidLibrary) apply false
+  alias(libs.plugins.composeCompiler) apply false
+  id("org.jetbrains.kotlin.android") version "2.2.10" apply false
+  id("org.jetbrains.kotlin.jvm") version "2.2.10" apply false
+  id("org.jetbrains.kotlin.kapt") version "2.2.10" apply false
+  id("com.google.dagger.hilt.android") version "2.51.1" apply false
 }
 
 tasks.register("clean", Delete::class) {

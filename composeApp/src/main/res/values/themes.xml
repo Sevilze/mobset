@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 theme for the app. We use DayNight and no ActionBar for Compose. -->
+    <style name="Theme.Mobset" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- Edge-to-edge colors; Compose will manage system bars. -->
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+</resources>
+

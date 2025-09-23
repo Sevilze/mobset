@@ -4,6 +4,15 @@ pluginManagement {
     mavenCentral()
     gradlePluginPortal()
   }
+  plugins {
+    id("org.jetbrains.kotlin.jvm") version "2.2.10"
+    id("org.jetbrains.kotlin.kapt") version "2.2.10"
+    id("org.jetbrains.kotlin.multiplatform") version "2.2.10"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.10"
+    id("com.android.application") version "8.10.1"
+    id("com.android.library") version "8.10.1"
+    id("org.jetbrains.compose") version "1.8.2"
+  }
 }
 
 dependencyResolutionManagement {
@@ -15,5 +24,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "SetMobile"
-include(":app", ":domain", ":data")
+include(":composeApp", ":domain", ":data")
 

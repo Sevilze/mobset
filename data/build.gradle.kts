@@ -1,8 +1,8 @@
 plugins {
   alias(libs.plugins.androidLibrary)
-  alias(libs.plugins.kotlinMultiplatform)
-  id("org.jetbrains.kotlin.kapt") version "2.2.10"
-  id("com.google.dagger.hilt.android") version "2.51.1"
+  id("org.jetbrains.kotlin.android")
+  id("org.jetbrains.kotlin.kapt")
+  id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -17,13 +17,6 @@ android {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
   }
-}
-
-
-kotlin {
-  androidTarget()
-  // Use Java 21 toolchain for Kotlin compilation
-  jvmToolchain(21)
 }
 
 dependencies {

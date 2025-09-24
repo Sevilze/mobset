@@ -1,8 +1,8 @@
-package mobset.domain.algorithm
+package com.mobset.domain.algorithm
 
-import mobset.domain.model.Card
-import mobset.domain.model.GameMode
-import mobset.domain.model.SetType
+import com.mobset.domain.model.Card
+import com.mobset.domain.model.GameMode
+import com.mobset.domain.model.SetType
 import kotlin.random.Random
 
 /**

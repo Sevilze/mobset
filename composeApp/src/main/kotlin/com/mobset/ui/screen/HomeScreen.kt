@@ -1,4 +1,4 @@
-package mobset.ui.screen
+package com.mobset.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,11 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import mobset.domain.model.GameMode
+import com.mobset.domain.model.GameMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    onNavigateToGame: (GameMode) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedMode by remember { mutableStateOf<GameMode?>(null) }
@@ -56,9 +57,9 @@ fun HomeScreen(
         
         // Start game button
         Button(
-            onClick = { 
-                selectedMode?.let {
-                    // TODO: Navigate to game screen
+            onClick = {
+                selectedMode?.let { mode ->
+                    onNavigateToGame(mode)
                 }
             },
             enabled = selectedMode != null,
@@ -68,12 +69,11 @@ fun HomeScreen(
         ) {
             Text("Start Game")
         }
-        
+
         // Demo button for testing
         OutlinedButton(
             onClick = {
-                // Start with normal mode for demo
-                selectedMode = GameMode.NORMAL
+                onNavigateToGame(GameMode.NORMAL)
             },
             modifier = Modifier
                 .fillMaxWidth()

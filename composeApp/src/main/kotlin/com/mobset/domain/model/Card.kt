@@ -1,4 +1,4 @@
-package mobset.domain.model
+package com.mobset.domain.model
 
 /**
  * Represents a Set card using the reference encoding format.
@@ -56,8 +56,8 @@ enum class CardShape(val value: Int) {
 }
 
 enum class CardShade(val value: Int) {
-    SOLID(0), STRIPED(1), OUTLINE(2);
-    
+    SOLID(0), STRIPED(1), OUTLINE(2), CHECKERED(3);
+
     companion object {
         fun fromValue(value: Int): CardShade = entries.getOrNull(value) ?: SOLID
     }

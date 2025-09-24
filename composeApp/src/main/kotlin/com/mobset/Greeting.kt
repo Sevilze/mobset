@@ -1,4 +1,4 @@
-package mobset
+package com.mobset
 
 class Greeting {
     private val platform = getPlatform()

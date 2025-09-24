@@ -1,4 +1,4 @@
-package mobset.domain.model
+package com.mobset.domain.model
 
 /**
  * Represents the current state of a Set game.

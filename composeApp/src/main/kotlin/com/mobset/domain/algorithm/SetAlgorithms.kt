@@ -6,7 +6,7 @@ import com.mobset.domain.model.SetType
 import kotlin.random.Random
 
 /**
- * Core Set game algorithms ported from the reference implementation.
+ * Core Set game algorithms.
  */
 object SetAlgorithms {
     
@@ -62,17 +62,14 @@ object SetAlgorithms {
      */
     fun checkSetNormal(cards: List<Card>, mode: GameMode): Boolean {
         if (cards.size != 3) return false
-        
+
         for (i in 0 until mode.traitCount) {
             val traits = cards.map { it.getTrait(i) }
-            
-            // For a valid set, each trait must be either all the same or all different
-            val allSame = traits.all { it == traits[0] }
-            val allDifferent = traits.toSet().size == traits.size
-            
-            if (!allSame && !allDifferent) return false
+
+            // For a valid set, the sum of traits modulo 3 must equal 0
+            if (traits.sum() % 3 != 0) return false
         }
-        
+
         return true
     }
     
@@ -89,15 +86,15 @@ object SetAlgorithms {
      */
     fun checkSet4Set(cards: List<Card>, mode: GameMode): Boolean {
         if (cards.size != 4) return false
-        
+
         for (i in 0 until mode.traitCount) {
             val traits = cards.map { it.getTrait(i) }
-            val variants = mode.traitVariants[i]
-            
-            // For 4-sets, the sum of traits must be 0 modulo the number of variants
-            if (traits.sum() % variants != 0) return false
+
+            // For 4-sets, the XOR of all traits must equal 0
+            val xorResult = traits.reduce { acc, trait -> acc xor trait }
+            if (xorResult != 0) return false
         }
-        
+
         return true
     }
     

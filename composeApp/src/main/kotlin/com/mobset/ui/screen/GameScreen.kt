@@ -79,7 +79,7 @@ fun GameScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            text = "Score: ${gameState.score}",
+                            text = "Time: ${formatElapsedTime(gameState.elapsedTime)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -209,7 +209,7 @@ private fun GameStatusCard(
                 when (gameResult) {
                     is GameResult.SetFound -> {
                         Text(
-                            text = "Great! Valid set found! +${calculateSetScore(gameResult.foundSet.type)} points",
+                            text = "Great! Valid set found!",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.padding(top = 8.dp)
@@ -257,7 +257,7 @@ private fun GameBoard(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 80.dp),
+        columns = GridCells.Fixed(3), // Fixed 3 columns for proper Set game layout
         modifier = modifier,
         contentPadding = PaddingValues(4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -309,12 +309,12 @@ private fun GameCompletedScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Final Score",
+                    text = "Final Time",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "${gameState.score}",
+                    text = formatElapsedTime(gameState.elapsedTime),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -357,11 +357,12 @@ private fun GameCompletedScreen(
     }
 }
 
-private fun calculateSetScore(setType: SetType): Int {
-    return when (setType) {
-        SetType.NORMAL -> 10
-        SetType.ULTRA -> 15
-        SetType.FOUR_SET -> 20
-        SetType.GHOST -> 25
-    }
+/**
+ * Formats elapsed time in milliseconds to a readable string (MM:SS.MS).
+ */
+private fun formatElapsedTime(elapsedTimeMs: Long): String {
+    val totalSeconds = elapsedTimeMs / 1000.0
+    val minutes = (totalSeconds / 60).toInt()
+    val secondsWithMs = totalSeconds % 60
+    return String.format("%02d:%05.2f", minutes, secondsWithMs)
 }

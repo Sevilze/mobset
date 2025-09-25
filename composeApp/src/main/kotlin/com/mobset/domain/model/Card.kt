@@ -69,4 +69,4 @@ enum class CardShade(val value: Int) {
 fun Card.getColor(): CardColor = CardColor.fromValue(color)
 fun Card.getShape(): CardShape = CardShape.fromValue(shape)
 fun Card.getShade(): CardShade = CardShade.fromValue(shade)
-fun Card.getNumber(): Int = number.coerceAtLeast(1)
+fun Card.getNumber(): Int = number + 1

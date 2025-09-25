@@ -8,17 +8,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 
 /**
  * ViewModel for managing Set game state and logic.
  */
 class GameViewModel : ViewModel() {
-    
+
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
-    
+
     private val _gameResult = MutableStateFlow<GameResult?>(null)
     val gameResult: StateFlow<GameResult?> = _gameResult.asStateFlow()
+
+    private var timerJob: Job? = null
     
     /**
      * Starts a new game with the specified mode.
@@ -29,6 +33,7 @@ class GameViewModel : ViewModel() {
             val setType = mode.setTypes.first()
             val board = SetAlgorithms.findBoard(deck, mode, setType)
             
+            val currentTime = System.currentTimeMillis()
             _gameState.value = GameState(
                 gameId = generateGameId(),
                 mode = mode,
@@ -36,14 +41,19 @@ class GameViewModel : ViewModel() {
                 board = board,
                 selectedCards = emptySet(),
                 foundSets = emptyList(),
-                score = 0,
+                usedCards = emptySet(),
+                startTime = currentTime,
+                elapsedTime = 0,
                 hintsUsed = 0,
                 gameStatus = GameStatus.IN_PROGRESS,
                 lastAction = GameAction.NewGame,
-                timestamp = System.currentTimeMillis()
+                timestamp = currentTime
             )
             
             _gameResult.value = null
+
+            // Start the live timer
+            startTimer()
         }
     }
     
@@ -103,16 +113,21 @@ class GameViewModel : ViewModel() {
             )
             
             val newFoundSets = currentState.foundSets + foundSet
-            val newScore = currentState.score + calculateSetScore(setType)
-            
-            // Remove found cards from board and deal new ones if needed
-            val newBoard = dealNewCards(currentState.board, selectedIndices, currentState.deck, currentState.mode)
-            
+            val currentTime = System.currentTimeMillis()
+            val newElapsedTime = currentTime - currentState.startTime
+            val newUsedCards = currentState.usedCards + selectedCards.toSet()
+
+            // Remove found cards and update board
+            val (newDeck, newBoardSize) = removeCardsAndUpdateBoard(selectedCards, currentState.deck, currentState.mode, newUsedCards)
+            val newBoard = newDeck.take(newBoardSize)
+
             _gameState.value = currentState.copy(
+                deck = newDeck,
                 board = newBoard,
                 selectedCards = emptySet(),
                 foundSets = newFoundSets,
-                score = newScore,
+                usedCards = newUsedCards,
+                elapsedTime = newElapsedTime,
                 lastAction = GameAction.CheckSet
             )
             
@@ -159,9 +174,12 @@ class GameViewModel : ViewModel() {
     fun dealCards() {
         val currentState = _gameState.value
         if (currentState.gameStatus != GameStatus.IN_PROGRESS) return
-        
-        val newBoard = dealNewCards(currentState.board, emptyList(), currentState.deck, currentState.mode)
-        
+
+        // Deal 3 more cards manually (user requested) - just increase board size
+        val currentBoardSize = currentState.board.size
+        val newBoardSize = minOf(currentBoardSize + 3, currentState.deck.size)
+        val newBoard = currentState.deck.take(newBoardSize)
+
         _gameState.value = currentState.copy(
             board = newBoard,
             selectedCards = emptySet(),
@@ -187,50 +205,102 @@ class GameViewModel : ViewModel() {
         _gameResult.value = null
     }
     
-    private fun dealNewCards(
-        currentBoard: List<Card>,
-        indicesToRemove: List<Int>,
-        deck: List<Card>,
-        mode: GameMode
-    ): List<Card> {
-        val mutableBoard = currentBoard.toMutableList()
-        
-        // Remove found cards (in reverse order to maintain indices)
-        indicesToRemove.sortedDescending().forEach { index ->
-            if (index < mutableBoard.size) {
-                mutableBoard.removeAt(index)
+    /**
+     * Removes cards from deck and updates board size.
+     */
+    private fun removeCardsAndUpdateBoard(
+        cardsToRemove: List<Card>,
+        currentDeck: List<Card>,
+        mode: GameMode,
+        usedCards: Set<Card>
+    ): Pair<List<Card>, Int> {
+        val mutableDeck = currentDeck.toMutableList()
+        val currentBoardSize = currentDeck.size.coerceAtMost(currentDeck.size)
+        val minBoardSize = mode.boardSize
+
+        if (cardsToRemove.size == currentBoardSize) {
+            repeat(currentBoardSize) {
+                if (mutableDeck.isNotEmpty()) {
+                    mutableDeck.removeAt(0)
+                }
+            }
+        } else {
+            val cutoff = minOf(mutableDeck.size - cardsToRemove.size, minBoardSize)
+
+            // Get card indices and sort descending
+            val cardIndices = cardsToRemove.mapNotNull { card ->
+                mutableDeck.indexOf(card).takeIf { it >= 0 }
+            }.sortedDescending()
+
+            for ((i, cardIndex) in cardIndices.withIndex()) {
+                if (cardIndex >= cutoff) {
+                    mutableDeck.removeAt(cardIndex)
+                } else {
+                    val remainingToRemove = cardIndices.size - i
+                    if (cutoff + remainingToRemove <= mutableDeck.size) {
+                        // Take cards from beyond cutoff to replace the found cards
+                        val replacementCards = mutableDeck.subList(cutoff, cutoff + remainingToRemove).toList()
+
+                        // Replace found cards with replacement cards
+                        for ((j, replacement) in replacementCards.withIndex()) {
+                            val targetIndex = cardIndices[cardIndices.size - 1 - j]
+                            if (targetIndex < mutableDeck.size) {
+                                mutableDeck[targetIndex] = replacement
+                            }
+                        }
+
+                        // Remove the replacement cards from their original positions
+                        repeat(remainingToRemove) {
+                            if (mutableDeck.size > cutoff) {
+                                mutableDeck.removeAt(cutoff)
+                            }
+                        }
+                    }
+                    break
+                }
             }
         }
-        
-        // Add new cards from deck if available
-        val usedCards = mutableBoard.toSet()
-        val availableCards = deck.filter { it !in usedCards }
-        val cardsToAdd = minOf(indicesToRemove.size, availableCards.size)
-        
-        repeat(cardsToAdd) {
-            if (availableCards.isNotEmpty()) {
-                mutableBoard.add(availableCards[it])
-            }
-        }
-        
-        return mutableBoard
+
+        // Find new board size
+        val newBoardSize = adjustBoardSize(mutableDeck, mode, minBoardSize)
+
+        return Pair(mutableDeck, newBoardSize)
     }
-    
-    private fun calculateSetScore(setType: SetType): Int {
-        return when (setType) {
-            SetType.NORMAL -> 10
-            SetType.ULTRA -> 15
-            SetType.FOUR_SET -> 20
-            SetType.GHOST -> 25
+
+    /**
+     * Adjust the board size to increment when there are no sets available.
+     */
+    private fun adjustBoardSize(
+        currentDeck: List<Card>,
+        mode: GameMode,
+        minBoardSize: Int
+    ): Int {
+        val setType = mode.setTypes.first()
+        val maxPossibleSize = currentDeck.size
+        var boardSize = minOf(maxPossibleSize, minBoardSize)
+
+        // Increase by 3 until we find a set or exhaust deck
+        while (boardSize < maxPossibleSize) {
+            val testBoard = currentDeck.take(boardSize)
+            val availableSets = SetAlgorithms.findSets(testBoard, setType, mode)
+            if (availableSets.isNotEmpty()) {
+                return boardSize
+            }
+
+            boardSize += 3
         }
+
+        return maxPossibleSize
     }
     
     private fun checkGameCompletion() {
         val currentState = _gameState.value
         val setType = currentState.mode.setTypes.first()
         val availableSets = SetAlgorithms.findSets(currentState.board, setType, currentState.mode)
-        
-        if (availableSets.isEmpty() && currentState.board.size < currentState.mode.boardSize) {
+
+        // Game is completed when no sets are available and deck is exhausted
+        if (availableSets.isEmpty() && currentState.board.size >= currentState.deck.size) {
+            stopTimer()
             _gameState.value = currentState.copy(gameStatus = GameStatus.COMPLETED)
             _gameResult.value = GameResult.GameCompleted
         }
@@ -238,5 +308,34 @@ class GameViewModel : ViewModel() {
     
     private fun generateGameId(): String {
         return "game_${System.currentTimeMillis()}"
+    }
+
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (true) {
+                val currentState = _gameState.value
+                if (currentState.gameStatus == GameStatus.IN_PROGRESS) {
+                    val currentTime = System.currentTimeMillis()
+                    val newElapsedTime = currentTime - currentState.startTime
+
+                    _gameState.value = currentState.copy(elapsedTime = newElapsedTime)
+                }
+                delay(10)
+            }
+        }
+    }
+
+    /**
+     * Stops the live timer.
+     */
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopTimer()
     }
 }

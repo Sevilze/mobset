@@ -3,29 +3,27 @@ package com.mobset.ui.component
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobset.domain.model.*
 import com.mobset.theme.AppTheme
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * Composable that renders a Set card with proper visual traits.
@@ -44,17 +42,17 @@ fun SetCard(
         animationSpec = tween(150),
         label = "card_scale"
     )
-    
+
     val elevation by animateFloatAsState(
         targetValue = if (isSelected) 8f else 2f,
         animationSpec = tween(150),
         label = "card_elevation"
     )
-    
+
     Card(
         onClick = onClick,
         modifier = modifier
-            .aspectRatio(0.7f)
+            .aspectRatio(1.6f)
             .scale(scale),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation.dp),
         colors = CardDefaults.cardColors(
@@ -66,121 +64,186 @@ fun SetCard(
         ),
         border = when {
             isSelected -> CardDefaults.outlinedCardBorder().copy(
-                brush = SolidColor(MaterialTheme.colorScheme.primary),
+                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
                 width = 2.dp
             )
             isHinted -> CardDefaults.outlinedCardBorder().copy(
-                brush = SolidColor(MaterialTheme.colorScheme.secondary),
+                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.secondary),
                 width = 2.dp
             )
             else -> null
         }
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
+            val cardHeight = maxHeight
+            val margin = cardHeight * 0.1f
+            val contentHeight = cardHeight - margin * 2
+
             CardSymbols(
                 card = card,
-                modifier = Modifier.fillMaxSize()
+                symbolSize = contentHeight * 0.6f,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(margin)
             )
         }
     }
 }
 
 /**
- * Renders the symbols on a Set card.
+ * Renders the symbols on a Set card using one Canvas so stripe/checker
+ * patterns are continuous across symbols.
  */
 @Composable
 private fun CardSymbols(
     card: Card,
+    symbolSize: Dp,
     modifier: Modifier = Modifier
 ) {
     val color = card.getColor()
     val shape = card.getShape()
     val shade = card.getShade()
     val number = card.getNumber()
-    
     val symbolColor = getSymbolColor(color)
-    
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        repeat(number) { index ->
-            if (index > 0) {
-                Spacer(modifier = Modifier.height(4.dp))
+
+    Canvas(modifier = modifier) {
+        val canvasW = size.width
+        val canvasH = size.height
+
+        // If the card is wider than tall we treat drawing in a "logical" portrait
+        // coordinate system and rotate the whole drawing so symbols face horizontally.
+        val shouldRotate = canvasW > canvasH
+        val logicalW = if (shouldRotate) canvasH else canvasW
+        val logicalH = if (shouldRotate) canvasW else canvasH
+        val maxSymbols = 3
+
+        var symbolH = logicalH * 0.60f
+        var symbolW = symbolH * (200f / 400f)
+        var spacing = symbolW * 0.12f
+
+        // Ensure three symbols fit in logical width, scale down if needed.
+        val neededForMax = maxSymbols * symbolW + (maxSymbols - 1) * spacing
+        if (neededForMax > logicalW) {
+            val scale = logicalW / (neededForMax + 1f)
+            symbolH *= scale
+            symbolW *= scale
+            spacing *= scale
+        }
+
+        // Compute placement for the actual number of symbols (centered).
+        val totalWidthActual = number * symbolW + (number - 1) * spacing
+        val startX = (logicalW - totalWidthActual) / 2f
+        val topY = (logicalH - symbolH) / 2f
+
+        // Center the logical block inside actual canvas before rotating.
+        val offsetX = (canvasW - logicalW) / 2f
+        val offsetY = (canvasH - logicalH) / 2f
+
+        // Build per-symbol positioned paths and a combined union path for clipping.
+        val symbolPaths = mutableListOf<Path>()
+        val combined = Path()
+        for (i in 0 until number) {
+            val left = startX + i * (symbolW + spacing)
+            val base = createShapePath(shape, Size(symbolW, symbolH))
+            val placed = Path().apply { addPath(base, Offset(left + offsetX, topY + offsetY)) }
+            symbolPaths.add(placed)
+            combined.addPath(placed, Offset.Zero)
+        }
+
+        val outlinePx = 18f * (symbolW / 200f)
+
+        if (shouldRotate) {
+            rotate(degrees = 90f) {
+                renderPathsByShade(shade, symbolPaths, combined, symbolColor, outlinePx, rotated = true)
             }
-            
-            Canvas(
-                modifier = Modifier
-                    .size(width = 40.dp, height = 20.dp)
-            ) {
-                drawSymbol(
-                    shape = shape,
-                    shade = shade,
-                    color = symbolColor,
-                    size = size
-                )
+        } else {
+            renderPathsByShade(shade, symbolPaths, combined, symbolColor, outlinePx, rotated = false)
+        }
+    }
+}
+
+private fun DrawScope.renderPathsByShade(
+    shade: CardShade,
+    symbolPaths: List<Path>,
+    combined: Path,
+    color: Color,
+    outlinePx: Float,
+    rotated: Boolean
+) {
+    when (shade) {
+        CardShade.SOLID -> {
+            symbolPaths.forEach { drawPath(it, color) }
+        }
+        CardShade.STRIPED -> {
+            clipPath(combined) {
+                drawStripedPatternContinuous(color, horizontal = rotated)
             }
+            symbolPaths.forEach { drawPath(it, color, style = Stroke(width = outlinePx)) }
+        }
+        CardShade.OUTLINE -> {
+            symbolPaths.forEach { drawPath(it, color, style = Stroke(width = outlinePx)) }
+        }
+        CardShade.CHECKERED -> {
+            clipPath(combined) {
+                drawCheckeredPattern(color)
+            }
+            symbolPaths.forEach { drawPath(it, color, style = Stroke(width = outlinePx)) }
         }
     }
 }
 
 /**
- * Draws a single symbol on the canvas.
+ * Draw stripes once across full DrawScope.size then clip to the shapes.
  */
-private fun DrawScope.drawSymbol(
-    shape: CardShape,
-    shade: CardShade,
-    color: Color,
-    size: Size
-) {
-    val path = createShapePath(shape, size)
-    
-    when (shade) {
-        CardShade.SOLID -> {
-            // Fill the shape completely
-            drawPath(
-                path = path,
-                color = color
-            )
-        }
-        CardShade.STRIPED -> {
-            // Draw striped pattern clipped to shape
-            clipPath(path) {
-                drawStripedPattern(color, size)
-            }
-            // Draw outline
-            drawPath(
-                path = path,
+private fun DrawScope.drawStripedPatternContinuous(color: Color, horizontal: Boolean) {
+    val stripeThickness = 1.dp.toPx()
+    val spacing = 2.dp.toPx()
+
+    if (horizontal) {
+        var y = -size.height
+        while (y < size.height * 2f) {
+            drawRect(
                 color = color,
-                style = Stroke(width = 1.dp.toPx())
+                topLeft = Offset(0f, y),
+                size = Size(size.width, stripeThickness)
             )
+            y += spacing
         }
-        CardShade.OUTLINE -> {
-            // Draw only the outline
-            drawPath(
-                path = path,
+    } else {
+        var x = -size.width
+        while (x < size.width * 2f) {
+            drawRect(
                 color = color,
-                style = Stroke(width = 2.dp.toPx())
+                topLeft = Offset(x, 0f),
+                size = Size(stripeThickness, size.height)
             )
+            x += spacing
         }
-        CardShade.CHECKERED -> {
-            // Draw checkered pattern clipped to shape
-            clipPath(path) {
-                drawCheckeredPattern(color, size)
-            }
-            // Draw outline
-            drawPath(
-                path = path,
+    }
+}
+
+/** Draw a simple checkered pattern across DrawScope.size */
+private fun DrawScope.drawCheckeredPattern(color: Color) {
+    val squareW = 50.dp.toPx()
+    val squareH = 100.dp.toPx()
+
+    var y = 0f
+    var row = 0
+    while (y < size.height) {
+        var x = if (row % 2 == 0) 0f else squareW
+        while (x < size.width) {
+            drawRect(
                 color = color,
-                style = Stroke(width = 1.dp.toPx())
+                topLeft = Offset(x, y),
+                size = Size(minOf(squareW, size.width - x), minOf(squareH, size.height - y))
             )
+            x += squareW * 2f
         }
+        y += squareH
+        row++
     }
 }
 
@@ -195,28 +258,16 @@ private fun createShapePath(shape: CardShape, size: Size): Path {
     val scaleY = size.height / 400f
 
     when (shape) {
-        CardShape.OVAL -> {
-            createOvalPath(path, scaleX, scaleY)
-        }
-        CardShape.SQUIGGLE -> {
-            createSquigglePath(path, scaleX, scaleY)
-        }
-        CardShape.DIAMOND -> {
-            createDiamondPath(path, scaleX, scaleY)
-        }
-        CardShape.HOURGLASS -> {
-            createHourglassPath(path, scaleX, scaleY)
-        }
+        CardShape.OVAL -> createOvalPath(path, scaleX, scaleY)
+        CardShape.SQUIGGLE -> createSquigglePath(path, scaleX, scaleY)
+        CardShape.DIAMOND -> createDiamondPath(path, scaleX, scaleY)
+        CardShape.HOURGLASS -> createHourglassPath(path, scaleX, scaleY)
     }
 
     return path
 }
 
-/**
- * Creates the authentic oval shape from reference SVG.
- */
 private fun createOvalPath(path: Path, scaleX: Float, scaleY: Float) {
-    // SVG: m11.49999,95.866646c0,-44.557076 37.442923,-81.999998 82.000002,-81.999998l12.000015,0c44.557076,0 81.999992,37.442923 81.999992,81.999998l0,206.133354c0,44.557098 -37.442917,82 -81.999992,82l-12.000015,0c-44.557079,0 -82.000002,-37.442902 -82.000002,-82l0,-206.133354z
     path.addRoundRect(
         androidx.compose.ui.geometry.RoundRect(
             left = 11.49999f * scaleX,
@@ -229,12 +280,7 @@ private fun createOvalPath(path: Path, scaleX: Float, scaleY: Float) {
     )
 }
 
-/**
- * Creates the authentic squiggle shape from reference SVG.
- */
 private fun createSquigglePath(path: Path, scaleX: Float, scaleY: Float) {
-    // SVG: m67.892902,12.746785c43.231313,-6.717223 107.352741,6.609823 121.028973,58.746408c13.676233,52.136585 -44.848649,161.467192 -45.07116,204.650732c4.566246,56.959708 83.805481,87.929227 22.329944,105.806022c-61.475536,17.876795 -126.122496,-1.855045 -143.73294,-41.933823c-17.610444,-40.07878 49.274638,-120.109409 46.14822,-188.091997c-3.126418,-67.982588 -21.873669,-70.257464 -49.613153,-80.177084c-27.739485,-9.919618 5.678801,-52.283035 48.910115,-59.000258z
-
     path.moveTo(67.892902f * scaleX, 12.746785f * scaleY)
     path.relativeCubicTo(
         43.231313f * scaleX, -6.717223f * scaleY,
@@ -274,11 +320,7 @@ private fun createSquigglePath(path: Path, scaleX: Float, scaleY: Float) {
     path.close()
 }
 
-/**
- * Creates the authentic diamond shape from reference SVG.
- */
 private fun createDiamondPath(path: Path, scaleX: Float, scaleY: Float) {
-    // SVG: m100 10-90 190 90 190 90-190-90-190z
     path.moveTo(100f * scaleX, 10f * scaleY)
     path.relativeLineTo(-90f * scaleX, 190f * scaleY)
     path.relativeLineTo(90f * scaleX, 190f * scaleY)
@@ -287,12 +329,7 @@ private fun createDiamondPath(path: Path, scaleX: Float, scaleY: Float) {
     path.close()
 }
 
-/**
- * Creates the authentic hourglass shape from reference SVG.
- */
 private fun createHourglassPath(path: Path, scaleX: Float, scaleY: Float) {
-    // SVG: m118.4386 201.1739c0-19.9228 17.9239-37.4523 26.8821-47.8051 23.5179-24.6961 40.3179-68.5227 43.6821-119.5128.5578-10.3522-3.9211-19.9228-9.5239-19.9228H19.3203c-5.6028 0-10.0817 9.5703-9.5239 19.9228 3.3634 50.9901 20.1634 94.8155 43.6821 120.3075 8.9578 9.5586 26.8821 27.0888 26.8821 47.0104 0 19.1172-17.9239 36.6486-26.8821 47.0104-23.5179 25.4897-40.3179 69.3144-43.6821 120.3075-.5578 10.3522 3.9211 19.9228 9.5239 19.9228h159.6c6.1606 0 10.6394-9.5586 9.5239-19.9228-3.3634-50.9901-20.1634-94.8155-43.6821-120.3075-8.9659-9.5586-26.3235-27.0888-26.3235-47.0104z
-
     path.moveTo(118.4386f * scaleX, 201.1739f * scaleY)
     path.relativeCubicTo(
         0f * scaleX, -19.9228f * scaleY,
@@ -360,68 +397,17 @@ private fun createHourglassPath(path: Path, scaleX: Float, scaleY: Float) {
 }
 
 /**
- * Draws a striped pattern matching the reference design.
- * Reference pattern: 2px stripes with 8px gaps in 20px repeat.
- */
-private fun DrawScope.drawStripedPattern(color: Color, size: Size) {
-    // Reference pattern dimensions scaled to current size
-    val patternHeight = 20.dp.toPx()
-    val stripeHeight = 8.dp.toPx()
-
-    var y = 0f
-    while (y < size.height) {
-        // Draw the stripe portion of the pattern
-        drawRect(
-            color = color,
-            topLeft = Offset(0f, y),
-            size = androidx.compose.ui.geometry.Size(size.width, stripeHeight)
-        )
-        y += patternHeight
-    }
-}
-
-/**
- * Draws a checkered pattern matching the reference design.
- * Reference pattern: 50x100px squares in 100x200px repeat.
- */
-private fun DrawScope.drawCheckeredPattern(color: Color, size: Size) {
-    // Reference pattern dimensions scaled to current size
-    val patternWidth = 100.dp.toPx()
-    val patternHeight = 200.dp.toPx()
-    val squareWidth = 50.dp.toPx()
-    val squareHeight = 100.dp.toPx()
-
-    var y = 0f
-    var rowOffset = 0
-    while (y < size.height) {
-        var x = if (rowOffset % 2 == 0) 0f else squareWidth
-        while (x < size.width) {
-            // Draw the square portion of the pattern
-            drawRect(
-                color = color,
-                topLeft = Offset(x, y),
-                size = androidx.compose.ui.geometry.Size(
-                    minOf(squareWidth, size.width - x),
-                    minOf(squareHeight, size.height - y)
-                )
-            )
-            x += patternWidth
-        }
-        y += squareHeight
-        rowOffset++
-    }
-}
-
-/**
  * Maps card color to actual Color.
  */
 @Composable
 private fun getSymbolColor(cardColor: CardColor): Color {
+    val isDark = isSystemInDarkTheme()
+
     return when (cardColor) {
-        CardColor.RED -> Color(0xFFE53E3E)
-        CardColor.GREEN -> Color(0xFF38A169)
-        CardColor.BLUE -> Color(0xFF3182CE)
-        CardColor.PURPLE -> Color(0xFF805AD5)
+        CardColor.RED -> if (isDark) Color(0xFFFFB047) else Color(0xFFFF0101)
+        CardColor.GREEN -> if (isDark) Color(0xFF00B803) else Color(0xFF008002)
+        CardColor.BLUE -> if (isDark) Color(0xFF47B0FF) else Color(0xFFFB8C00)
+        CardColor.PURPLE -> if (isDark) Color(0xFFFF47FF) else Color(0xFF800080)
     }
 }
 
@@ -429,29 +415,16 @@ private fun getSymbolColor(cardColor: CardColor): Color {
 @Composable
 private fun SetCardPreview() {
     AppTheme {
-        Row(
+        Column(
             modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SetCard(
-                card = Card("0000"), // Red oval solid 1
-                isSelected = false,
-                onClick = {},
-                modifier = Modifier.width(80.dp)
-            )
-            SetCard(
-                card = Card("1111"), // Green squiggle striped 2
-                isSelected = true,
-                onClick = {},
-                modifier = Modifier.width(80.dp)
-            )
-            SetCard(
-                card = Card("2222"), // Blue diamond outline 3
-                isSelected = false,
-                onClick = {},
-                modifier = Modifier.width(80.dp),
-                isHinted = true
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                SetCard(card = Card("0000"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
+                SetCard(card = Card("0100"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
+                SetCard(card = Card("0200"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
+                SetCard(card = Card("0300"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
+            }
         }
     }
 }

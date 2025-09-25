@@ -8,9 +8,11 @@ data class GameState(
     val mode: GameMode = GameMode.NORMAL,
     val deck: List<Card> = emptyList(),
     val board: List<Card> = emptyList(),
-    val selectedCards: Set<Int> = emptySet(), // indices of selected cards
+    val selectedCards: Set<Int> = emptySet(),
     val foundSets: List<FoundSet> = emptyList(),
-    val score: Int = 0,
+    val usedCards: Set<Card> = emptySet(),
+    val startTime: Long = System.currentTimeMillis(),
+    val elapsedTime: Long = 0,
     val hintsUsed: Int = 0,
     val gameStatus: GameStatus = GameStatus.NOT_STARTED,
     val lastAction: GameAction? = null,

@@ -53,8 +53,16 @@ fun SetApp() {
     val navController = rememberNavController()
     var isLoading by remember { mutableStateOf(true) }
 
+    val authViewModel: com.mobset.ui.viewmodel.AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val user by authViewModel.currentUser.collectAsState()
+
     if (isLoading) {
         LoadingScreen(onLoadingComplete = { isLoading = false })
+        return
+    }
+
+    if (user == null) {
+        SignInScreen(onSignedIn = { /* Nav will auto-refresh via user state */ })
         return
     }
 
@@ -119,7 +127,11 @@ fun SetApp() {
                     FriendsScreen()
                 }
                 composable(BottomTab.Profile.route) {
-                    ProfileScreen()
+                    ProfileScreen(
+                        displayName = user?.displayName ?: "",
+                        email = user?.email ?: "",
+                        onSignOut = { authViewModel.signOut() }
+                    )
                 }
 
                 composable(

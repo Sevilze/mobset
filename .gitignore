@@ -1,10 +1,13 @@
 *.iml
 .kotlin
 .gradle
+.vscode
 **/build/
 xcuserdata
 !src/**/build/
 local.properties
+strings.xml
+google-services.json
 reference/
 .systemplan
 .idea

@@ -69,18 +69,6 @@ fun HomeScreen(
         ) {
             Text("Start Game")
         }
-
-        // Demo button for testing
-        OutlinedButton(
-            onClick = {
-                onNavigateToGame(GameMode.NORMAL)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
-        ) {
-            Text("Quick Demo (Normal Mode)")
-        }
     }
 }
 

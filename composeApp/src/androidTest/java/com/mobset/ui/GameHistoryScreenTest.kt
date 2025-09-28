@@ -14,21 +14,23 @@ import org.junit.Rule
 import org.junit.Test
 
 @HiltAndroidTest
-class ProfileScreenTest {
+class GameHistoryScreenTest {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Before fun setup() { hiltRule.inject() }
 
     @Test
-    fun profileShowsIdentityAndActions() {
+    fun navigateToHistoryAndSeeFilters() {
         TestAuthState.setUser(AuthUser("u1", "User One", "u1@example.com", null))
-        // Navigate to Profile tab
+        // Navigate to Profile
         composeRule.onNodeWithText("Profile").assertIsDisplayed().performClick()
-        composeRule.onNodeWithText("User One").assertIsDisplayed()
-        composeRule.onNodeWithText("u1@example.com").assertIsDisplayed()
-        composeRule.onNodeWithText("View Detailed History").assertIsDisplayed()
-        composeRule.onNodeWithText("Sign out").assertIsDisplayed()
+        // Open history
+        composeRule.onNodeWithText("View Detailed History").assertIsDisplayed().performClick()
+        // Verify history screen title and filters
+        composeRule.onNodeWithText("Game History").assertIsDisplayed()
+        composeRule.onNodeWithText("Game Mode").assertIsDisplayed()
+        composeRule.onNodeWithText("Player Mode").assertIsDisplayed()
     }
 }
 

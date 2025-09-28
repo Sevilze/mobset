@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Singleton
 
 @Module
@@ -17,26 +18,29 @@ import javax.inject.Singleton
     components = [SingletonComponent::class],
     replaces = [com.mobset.data.di.AuthBinderModule::class]
 )
-@InstallIn(SingletonComponent::class)
 object TestAuthModule {
     @Provides
     @Singleton
     fun provideFakeAuthRepository(): AuthRepository = FakeAuthRepository()
 }
 
+object TestAuthState {
+    val state = MutableStateFlow<AuthUser?>(null)
+    fun setUser(user: AuthUser?) { state.value = user }
+}
+
 class FakeAuthRepository : AuthRepository {
-    private val state = MutableStateFlow<AuthUser?>(null)
-    override val currentUser: Flow<AuthUser?> = state
+    override val currentUser: Flow<AuthUser?> = TestAuthState.state as StateFlow<AuthUser?>
 
     override suspend fun signInWithGoogleIdToken(idToken: String): AuthResult {
-        state.value = AuthUser(uid = "test", displayName = "Tester", email = "t@example.com", photoUrl = null)
+        TestAuthState.state.value = AuthUser(uid = "test", displayName = "Tester", email = "t@example.com", photoUrl = null)
         return AuthResult.Success
     }
 
     override suspend fun signOut() {
-        state.value = null
+        TestAuthState.state.value = null
     }
 
-    fun setUser(user: AuthUser?) { state.value = user }
+    fun setUser(user: AuthUser?) { TestAuthState.state.value = user }
 }
 

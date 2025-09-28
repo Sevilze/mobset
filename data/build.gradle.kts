@@ -24,7 +24,7 @@ dependencies {
 
   implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
   implementation("com.google.firebase:firebase-auth-ktx")
-  implementation("com.google.firebase:firebase-database-ktx")
+  implementation("com.google.firebase:firebase-firestore-ktx")
   implementation("com.google.firebase:firebase-analytics-ktx")
 
   implementation("com.google.dagger:hilt-android:2.51.1")
@@ -32,5 +32,8 @@ dependencies {
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
   implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+  testImplementation("junit:junit:4.13.2")
+  testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 }
 

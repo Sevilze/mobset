@@ -10,11 +10,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.firstOrNull
+
 
 /**
+
+
  * ViewModel for managing Set game state and logic.
  */
-class GameViewModel : ViewModel() {
+@dagger.hilt.android.lifecycle.HiltViewModel
+class GameViewModel @javax.inject.Inject constructor(
+    private val authRepository: com.mobset.data.auth.AuthRepository,
+    private val historyRepository: com.mobset.data.history.GameHistoryRepository
+) : ViewModel() {
 
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
@@ -23,7 +31,7 @@ class GameViewModel : ViewModel() {
     val gameResult: StateFlow<GameResult?> = _gameResult.asStateFlow()
 
     private var timerJob: Job? = null
-    
+
     /**
      * Starts a new game with the specified mode.
      */
@@ -32,7 +40,7 @@ class GameViewModel : ViewModel() {
             val deck = SetAlgorithms.generateDeck(mode)
             val setType = mode.setTypes.first()
             val board = SetAlgorithms.findBoard(deck, mode, setType)
-            
+
             val currentTime = System.currentTimeMillis()
             _gameState.value = GameState(
                 gameId = generateGameId(),
@@ -49,24 +57,24 @@ class GameViewModel : ViewModel() {
                 lastAction = GameAction.NewGame,
                 timestamp = currentTime
             )
-            
+
             _gameResult.value = null
 
             // Start the live timer
             startTimer()
         }
     }
-    
+
     /**
      * Handles card selection/deselection.
      */
     fun selectCard(cardIndex: Int) {
         val currentState = _gameState.value
         if (currentState.gameStatus != GameStatus.IN_PROGRESS) return
-        
+
         val selectedCards = currentState.selectedCards.toMutableSet()
         val setType = currentState.mode.setTypes.first()
-        
+
         if (selectedCards.contains(cardIndex)) {
             // Deselect card
             selectedCards.remove(cardIndex)
@@ -77,7 +85,7 @@ class GameViewModel : ViewModel() {
         } else {
             // Select card
             selectedCards.add(cardIndex)
-            
+
             // Check if we have enough cards for a set
             if (selectedCards.size == setType.size) {
                 checkSelectedSet(selectedCards.toList(), currentState)
@@ -89,21 +97,21 @@ class GameViewModel : ViewModel() {
             }
         }
     }
-    
+
     /**
      * Checks if the selected cards form a valid set.
      */
     private fun checkSelectedSet(selectedIndices: List<Int>, currentState: GameState) {
         val selectedCards = selectedIndices.map { currentState.board[it] }
         val setType = currentState.mode.setTypes.first()
-        
+
         val isValidSet = when (setType) {
             SetType.NORMAL -> SetAlgorithms.checkSetNormal(selectedCards, currentState.mode)
             SetType.ULTRA -> SetAlgorithms.checkSetUltra(selectedCards, currentState.mode)
             SetType.FOUR_SET -> SetAlgorithms.checkSet4Set(selectedCards, currentState.mode)
             SetType.GHOST -> SetAlgorithms.checkSetGhost(selectedCards, currentState.mode)
         }
-        
+
         if (isValidSet) {
             // Valid set found
             val foundSet = FoundSet(
@@ -111,7 +119,7 @@ class GameViewModel : ViewModel() {
                 type = setType,
                 timestamp = System.currentTimeMillis()
             )
-            
+
             val newFoundSets = currentState.foundSets + foundSet
             val currentTime = System.currentTimeMillis()
             val newElapsedTime = currentTime - currentState.startTime
@@ -130,9 +138,9 @@ class GameViewModel : ViewModel() {
                 elapsedTime = newElapsedTime,
                 lastAction = GameAction.CheckSet
             )
-            
+
             _gameResult.value = GameResult.SetFound(foundSet)
-            
+
             // Check if game is completed
             checkGameCompletion()
         } else {
@@ -141,21 +149,21 @@ class GameViewModel : ViewModel() {
                 selectedCards = emptySet(),
                 lastAction = GameAction.CheckSet
             )
-            
+
             _gameResult.value = GameResult.InvalidSet(selectedCards)
         }
     }
-    
+
     /**
      * Provides a hint by highlighting cards that form a valid set.
      */
     fun useHint() {
         val currentState = _gameState.value
         if (currentState.gameStatus != GameStatus.IN_PROGRESS) return
-        
+
         val setType = currentState.mode.setTypes.first()
         val availableSets = SetAlgorithms.findSets(currentState.board, setType, currentState.mode)
-        
+
         if (availableSets.isNotEmpty()) {
             val hintSet = availableSets.first()
             _gameState.value = currentState.copy(
@@ -167,7 +175,7 @@ class GameViewModel : ViewModel() {
             _gameResult.value = GameResult.NoSetsAvailable
         }
     }
-    
+
     /**
      * Deals additional cards to the board.
      */
@@ -186,7 +194,7 @@ class GameViewModel : ViewModel() {
             lastAction = GameAction.DealCards
         )
     }
-    
+
     /**
      * Clears the current selection.
      */
@@ -197,14 +205,14 @@ class GameViewModel : ViewModel() {
             lastAction = GameAction.ClearSelection
         )
     }
-    
+
     /**
      * Clears the current game result.
      */
     fun clearGameResult() {
         _gameResult.value = null
     }
-    
+
     /**
      * Removes cards from deck and updates board size.
      */
@@ -292,7 +300,7 @@ class GameViewModel : ViewModel() {
 
         return maxPossibleSize
     }
-    
+
     private fun checkGameCompletion() {
         val currentState = _gameState.value
         val setType = currentState.mode.setTypes.first()
@@ -303,9 +311,49 @@ class GameViewModel : ViewModel() {
             stopTimer()
             _gameState.value = currentState.copy(gameStatus = GameStatus.COMPLETED)
             _gameResult.value = GameResult.GameCompleted
+            // Persist game completion asynchronously
+            viewModelScope.launch { persistGameCompletion() }
         }
     }
-    
+
+    private suspend fun persistGameCompletion() {
+        val state = _gameState.value
+        val user = authRepository.currentUser.firstOrNull()
+        val uid = user?.uid ?: return
+        // Build record
+        val modeType = when (state.mode.id) {
+            "ultra" -> com.mobset.data.history.GameModeType.ULTRA
+            else -> com.mobset.data.history.GameModeType.NORMAL
+        }
+        val setsHistory = state.foundSets.map { fs ->
+            com.mobset.data.history.SetFoundEvent(
+                playerId = uid,
+                timestamp = fs.timestamp,
+                cardEncodings = fs.cards.map { it.encoding }
+            )
+        }
+        val playerStats = listOf(
+            com.mobset.data.history.PlayerGameStats(
+                playerId = uid,
+                setsFound = state.foundSets.size,
+                timeMs = state.elapsedTime
+            )
+        )
+        val rec = com.mobset.data.history.GameRecord(
+            gameId = state.gameId,
+            creationTimestamp = state.startTime,
+            finishTimestamp = state.startTime + state.elapsedTime,
+            hostPlayerId = uid,
+            totalPlayers = 1,
+            gameMode = modeType,
+            playerMode = com.mobset.data.history.PlayerMode.SOLO,
+            winners = listOf(uid),
+            setsFoundHistory = setsHistory,
+            playerStats = playerStats
+        )
+        kotlin.runCatching { historyRepository.addGameRecord(rec) }
+    }
+
     private fun generateGameId(): String {
         return "game_${System.currentTimeMillis()}"
     }

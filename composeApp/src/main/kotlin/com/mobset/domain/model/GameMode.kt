@@ -27,15 +27,15 @@ data class GameMode(
             setTypes = listOf(SetType.NORMAL)
         )
         
-        // Ultra mode with more traits
+        // Ultraset, select 4 cards forming two 3-card sets with a shared conjugate
         val ULTRA = GameMode(
             id = "ultra",
             name = "Ultra",
-            description = "Extended Set with additional traits",
-            traitCount = 6,
-            traitVariants = listOf(3, 4, 3, 3, 2, 2), // extended traits
-            deckSize = 432, // 3*4*3*3*2*2
-            boardSize = 15,
+            description = "4 traits like Normal; pick 4 cards: two 3-card sets sharing a conjugate",
+            traitCount = 4,
+            traitVariants = listOf(3, 3, 3, 3),
+            deckSize = 81,
+            boardSize = 12,
             setTypes = listOf(SetType.ULTRA)
         )
         
@@ -79,7 +79,7 @@ enum class SetType(
     val description: String
 ) {
     NORMAL("normal", "Normal Set", 3, "Classic 3-card set"),
-    ULTRA("ultra", "Ultra Set", 3, "3-card set with extended traits"),
+    ULTRA("ultra", "Ultra Set", 4, "4-card selection: two normal sets sharing a common conjugate card"),
     FOUR_SET("4set", "4-Set", 4, "4-card set"),
     GHOST("ghost", "Ghost Set", 3, "3-card set with ghost cards");
     

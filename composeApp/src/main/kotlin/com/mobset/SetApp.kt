@@ -110,6 +110,9 @@ fun SetApp() {
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
+                composable("history") {
+                    GameHistoryScreen(onNavigateBack = { navController.popBackStack() })
+                }
                 composable(BottomTab.Singleplayer.route) {
                     SingleplayerScreen(
                         onNavigateToGame = { gameMode ->
@@ -128,8 +131,7 @@ fun SetApp() {
                 }
                 composable(BottomTab.Profile.route) {
                     ProfileScreen(
-                        displayName = user?.displayName ?: "",
-                        email = user?.email ?: "",
+                        onViewHistory = { navController.navigate("history") },
                         onSignOut = { authViewModel.signOut() }
                     )
                 }

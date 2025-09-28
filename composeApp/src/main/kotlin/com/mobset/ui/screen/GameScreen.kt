@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mobset.domain.model.*
 import com.mobset.ui.component.SetCard
 import com.mobset.ui.viewmodel.GameViewModel
@@ -33,7 +33,7 @@ fun GameScreen(
     gameMode: GameMode,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: GameViewModel = viewModel()
+    viewModel: GameViewModel = hiltViewModel()
 ) {
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
     val gameResult by viewModel.gameResult.collectAsStateWithLifecycle()

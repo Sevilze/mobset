@@ -77,8 +77,19 @@ object SetAlgorithms {
      * Checks if the given cards form a valid ultra set.
      */
     fun checkSetUltra(cards: List<Card>, mode: GameMode): Boolean {
-        // Ultra sets follow the same rules as normal sets but with more traits
-        return checkSetNormal(cards, mode)
+        if (cards.size != 4) return false
+        // Consider the three disjoint pair partitions: (0,1)-(2,3), (0,2)-(1,3), (0,3)-(1,2)
+        val pairs = listOf(
+            listOf(0 to 1, 2 to 3),
+            listOf(0 to 2, 1 to 3),
+            listOf(0 to 3, 1 to 2)
+        )
+        for (partition in pairs) {
+            val conj1 = conjugateCard(cards[partition[0].first], cards[partition[0].second], mode)
+            val conj2 = conjugateCard(cards[partition[1].first], cards[partition[1].second], mode)
+            if (conj1 == conj2) return true
+        }
+        return false
     }
     
     /**
@@ -122,14 +133,29 @@ object SetAlgorithms {
         val sets = mutableListOf<List<Int>>()
         
         when (setType) {
-            SetType.NORMAL, SetType.ULTRA -> {
-                // Find all combinations of 3 cards
+            SetType.NORMAL -> {
+                // Find all combinations of 3 cards for normal
                 for (i in board.indices) {
                     for (j in i + 1 until board.size) {
                         for (k in j + 1 until board.size) {
                             val cards = listOf(board[i], board[j], board[k])
                             if (checkSetNormal(cards, mode)) {
                                 sets.add(listOf(i, j, k))
+                            }
+                        }
+                    }
+                }
+            }
+            SetType.ULTRA -> {
+                // Find all combinations of 4 cards for Ultra
+                for (i in board.indices) {
+                    for (j in i + 1 until board.size) {
+                        for (k in j + 1 until board.size) {
+                            for (l in k + 1 until board.size) {
+                                val cards = listOf(board[i], board[j], board[k], board[l])
+                                if (checkSetUltra(cards, mode)) {
+                                    sets.add(listOf(i, j, k, l))
+                                }
                             }
                         }
                     }

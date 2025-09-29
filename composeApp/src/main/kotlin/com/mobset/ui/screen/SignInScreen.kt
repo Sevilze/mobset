@@ -35,7 +35,6 @@ import com.mobset.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Preview
 @Composable
 fun SignInScreen(
     modifier: Modifier = Modifier,
@@ -46,6 +45,41 @@ fun SignInScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    SignInContent(
+        uiState = uiState,
+        onContinueWithGoogle = {
+            scope.launch {
+                try {
+                    val googleIdOption = GetGoogleIdOption.Builder()
+                        .setFilterByAuthorizedAccounts(false)
+                        .setServerClientId(context.getString(R.string.default_web_client_id))
+                        .build()
+                    val request = GetCredentialRequest.Builder()
+                        .addCredentialOption(googleIdOption)
+                        .build()
+                    val resp: GetCredentialResponse = CredentialManager.create(context)
+                        .getCredential(context, request)
+                    val cred = GoogleIdTokenCredential.createFrom(resp.credential.data)
+                    viewModel.signInWithGoogleIdToken(cred.idToken)
+                    onSignedIn()
+                } catch (e: GetCredentialException) {
+                    // user cancelled or no credential
+                } catch (e: Exception) { /* unexpected */
+                }
+            }
+        },
+        modifier = modifier
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun SignInContent(
+    uiState: AuthUiState,
+    onContinueWithGoogle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -68,28 +102,7 @@ fun SignInScreen(
         )
         Spacer(Modifier.height(28.dp))
 
-        Button(
-            onClick = {
-                scope.launch {
-                    try {
-                        val googleIdOption = GetGoogleIdOption.Builder()
-                            .setFilterByAuthorizedAccounts(false)
-                            .setServerClientId(context.getString(R.string.default_web_client_id))
-                            .build()
-                        val request = GetCredentialRequest.Builder()
-                            .addCredentialOption(googleIdOption)
-                            .build()
-                        val resp: GetCredentialResponse = CredentialManager.create(context)
-                            .getCredential(context, request)
-                        val cred = GoogleIdTokenCredential.createFrom(resp.credential.data)
-                        viewModel.signInWithGoogleIdToken(cred.idToken)
-                        onSignedIn()
-                    } catch (e: GetCredentialException) {
-                        // user cancelled or no credential
-                    } catch (e: Exception) { /* unexpected */ }
-                }
-            }
-        ) {
+        Button(onClick = onContinueWithGoogle) {
             Text("Continue with Google")
         }
 
@@ -101,13 +114,19 @@ fun SignInScreen(
                 Spacer(Modifier.height(8.dp))
                 Text("Signing in…", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+
             is AuthUiState.Error -> {
                 val msg = (uiState as AuthUiState.Error).message
                 Text(msg, color = MaterialTheme.colorScheme.error)
             }
+
             else -> Unit
         }
     }
 }
 
-
+@Preview
+@Composable
+private fun SignInContentPreview() {
+    SignInContent(uiState = AuthUiState.Idle, onContinueWithGoogle = {})
+}

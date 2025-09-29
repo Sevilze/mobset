@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobset.domain.algorithm.SetAlgorithms
@@ -25,6 +26,7 @@ import com.mobset.ui.component.SetCard as SetCardComposable
  * For now, generates a subset of valid sets from the NORMAL deck.
  */
 @OptIn(ExperimentalFoundationApi::class)
+@Preview
 @Composable
 fun PlaygroundScreen(modifier: Modifier = Modifier) {
     val samples = remember { mutableStateListOf<List<SetCardModel>>() }

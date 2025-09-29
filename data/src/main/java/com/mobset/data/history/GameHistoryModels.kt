@@ -11,6 +11,17 @@ data class SetFoundEvent(
     val cardEncodings: List<String>
 )
 
+/**
+ * Normalized event record to reconstruct full game state.
+ */
+data class GameEvent(
+    val type: String,
+    val timestamp: Long,
+    val playerId: String? = null,
+    val cardEncodings: List<String>? = null,
+    val boardSize: Int? = null
+)
+
 data class PlayerGameStats(
     val playerId: String,
     val setsFound: Int,
@@ -27,7 +38,11 @@ data class GameRecord(
     val playerMode: PlayerMode,
     val winners: List<String>,
     val setsFoundHistory: List<SetFoundEvent>,
-    val playerStats: List<PlayerGameStats>
+    val playerStats: List<PlayerGameStats>,
+    val seed: Long? = null,
+    val initialDeckEncodings: List<String> = emptyList(),
+    val events: List<GameEvent> = emptyList(),
+    val finalBoardEncodings: List<String> = emptyList()
 )
 
 /**

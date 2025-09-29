@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,7 +23,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mobset.domain.model.*
 import com.mobset.ui.component.SetCard
 import com.mobset.ui.viewmodel.GameViewModel
+import com.mobset.ui.util.formatElapsedTimeMs
+import com.mobset.ui.component.FoundSetsPanel
+import com.mobset.domain.algorithm.SetAlgorithms
+
 import kotlinx.coroutines.delay
+
 
 /**
  * Main game screen where the Set game is played.
@@ -37,16 +43,18 @@ fun GameScreen(
 ) {
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
     val gameResult by viewModel.gameResult.collectAsStateWithLifecycle()
-    
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
     var hintedCards by remember { mutableStateOf<List<Int>>(emptyList()) }
-    
+
     // Start game when screen is first composed
     LaunchedEffect(gameMode) {
         if (gameState.gameStatus == GameStatus.NOT_STARTED) {
             viewModel.startNewGame(gameMode)
         }
     }
-    
+
     // Handle game results
     LaunchedEffect(gameResult) {
         val result = gameResult
@@ -57,33 +65,38 @@ fun GameScreen(
                 hintedCards = emptyList()
                 viewModel.clearGameResult()
             }
+
             is GameResult.SetFound -> {
-                delay(1000) // Brief pause to show success
+                // Clear immediately for snappy UX
                 viewModel.clearGameResult()
             }
+
             is GameResult.InvalidSet -> {
-                delay(1000) // Brief pause to show error
+                // Show snackbar near bottom above the panel
+                snackbarHostState.showSnackbar(
+                    "Not a valid set. Try again!",
+                    withDismissAction = true
+                )
                 viewModel.clearGameResult()
             }
+
+            is GameResult.NoSetsAvailable -> {
+                snackbarHostState.showSnackbar("No sets available. Deal more cards.")
+                viewModel.clearGameResult()
+            }
+
             else -> {}
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = gameMode.name,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Time: ${formatElapsedTime(gameState.elapsedTime)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = gameMode.name,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -105,6 +118,21 @@ fun GameScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            FoundSetsPanel(
+                status = gameState.gameStatus,
+                mode = gameState.mode,
+                foundSets = gameState.foundSets,
+                showTimestamps = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
     ) { paddingValues ->
         Column(
@@ -119,9 +147,9 @@ fun GameScreen(
                 gameResult = gameResult,
                 modifier = Modifier.fillMaxWidth()
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Game board
             when (gameState.gameStatus) {
                 GameStatus.NOT_STARTED -> {
@@ -132,6 +160,7 @@ fun GameScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 GameStatus.IN_PROGRESS -> {
                     GameBoard(
                         board = gameState.board,
@@ -141,14 +170,41 @@ fun GameScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+
                 GameStatus.COMPLETED -> {
-                    GameCompletedScreen(
-                        gameState = gameState,
-                        onNewGame = { viewModel.startNewGame(gameMode) },
-                        onNavigateBack = onNavigateBack,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    // Keep the final board visible and overlay the dialog
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        GameBoard(
+                            board = gameState.board,
+                            selectedCards = emptySet(),
+                            hintedCards = emptyList(),
+                            onCardClick = {},
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        AlertDialog(
+                            onDismissRequest = onNavigateBack,
+                            title = { Text("Game Completed") },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Final Time: ${formatElapsedTimeMs(gameState.elapsedTime)}")
+                                    Text("Sets Found: ${gameState.foundSets.size}")
+                                    Text("Hints Used: ${gameState.hintsUsed}")
+                                }
+                            },
+                            confirmButton = {
+                                Button(onClick = { viewModel.startNewGame(gameMode) }) {
+                                    Text("Play Again")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = onNavigateBack) {
+                                    Text("Home")
+                                }
+                            }
+                        )
+                    }
                 }
+
                 else -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -185,61 +241,14 @@ private fun GameStatusCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            // Stylized timer replaces Sets/Hints columns
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "Sets Found: ${gameState.foundSets.size}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    text = formatElapsedTimeMs(gameState.elapsedTime),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = "Hints Used: ${gameState.hintsUsed}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-            
-            AnimatedVisibility(
-                visible = gameResult != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                when (gameResult) {
-                    is GameResult.SetFound -> {
-                        Text(
-                            text = "Great! Valid set found!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                    is GameResult.InvalidSet -> {
-                        Text(
-                            text = "Not a valid set. Try again!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                    is GameResult.Hint -> {
-                        Text(
-                            text = "Hint: Look at the highlighted cards",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                    is GameResult.NoSetsAvailable -> {
-                        Text(
-                            text = "No sets available. Deal more cards!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                    else -> {}
-                }
             }
         }
     }
@@ -295,9 +304,9 @@ private fun GameCompletedScreen(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -314,14 +323,14 @@ private fun GameCompletedScreen(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = formatElapsedTime(gameState.elapsedTime),
+                    text = formatElapsedTimeMs(gameState.elapsedTime),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text(
                     text = "Sets Found: ${gameState.foundSets.size}",
                     style = MaterialTheme.typography.bodyLarge,
@@ -334,9 +343,9 @@ private fun GameCompletedScreen(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -346,7 +355,7 @@ private fun GameCompletedScreen(
             ) {
                 Text("Play Again")
             }
-            
+
             OutlinedButton(
                 onClick = onNavigateBack,
                 modifier = Modifier.weight(1f)
@@ -357,12 +366,17 @@ private fun GameCompletedScreen(
     }
 }
 
-/**
- * Formats elapsed time in milliseconds to a readable string (MM:SS.MS).
- */
-private fun formatElapsedTime(elapsedTimeMs: Long): String {
-    val totalSeconds = elapsedTimeMs / 1000.0
-    val minutes = (totalSeconds / 60).toInt()
-    val secondsWithMs = totalSeconds % 60
-    return String.format("%02d:%05.2f", minutes, secondsWithMs)
+@Composable
+@Preview
+fun GameStatusCardPreview() {
+    GameStatusCard(
+        gameState = GameState(
+            mode = GameMode.NORMAL,
+            board = SetAlgorithms.generateDeck(GameMode.NORMAL).take(12),
+            gameStatus = GameStatus.IN_PROGRESS,
+            elapsedTime = 123_456
+        ),
+        gameResult = null
+    )
 }
+

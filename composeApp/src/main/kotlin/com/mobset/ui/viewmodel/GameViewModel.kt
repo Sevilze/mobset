@@ -2,8 +2,18 @@ package com.mobset.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mobset.data.auth.AuthRepository
+import com.mobset.data.history.GameHistoryRepository
+import com.mobset.data.history.GameEvent
+import com.mobset.data.history.GameModeType
+import com.mobset.data.history.GameRecord
+import com.mobset.data.history.PlayerGameStats
+import com.mobset.data.history.PlayerMode
+import com.mobset.data.history.SetFoundEvent
 import com.mobset.domain.algorithm.SetAlgorithms
 import com.mobset.domain.model.*
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,18 +21,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.firstOrNull
-
+import javax.inject.Inject
 
 /**
-
-
  * ViewModel for managing Set game state and logic.
  */
-@dagger.hilt.android.lifecycle.HiltViewModel
-class GameViewModel @javax.inject.Inject constructor(
-    private val authRepository: com.mobset.data.auth.AuthRepository,
-    private val historyRepository: com.mobset.data.history.GameHistoryRepository
+@HiltViewModel
+class GameViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val historyRepository: GameHistoryRepository
 ) : ViewModel() {
+
+    private val currentDisplayName = MutableStateFlow<String?>(null)
+    private val currentUid = MutableStateFlow<String?>(null)
+
+    // Full-state capture for history
+    private var gameSeed: Long? = null
+    private var initialDeckEncodings: List<String> = emptyList()
+    private val events = mutableListOf<GameEvent>()
+
+    init {
+        viewModelScope.launch {
+            authRepository.currentUser.collect {
+                currentDisplayName.value = it?.displayName
+                currentUid.value = it?.uid
+            }
+        }
+    }
+
 
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
@@ -37,15 +63,29 @@ class GameViewModel @javax.inject.Inject constructor(
      */
     fun startNewGame(mode: GameMode) {
         viewModelScope.launch {
-            val deck = SetAlgorithms.generateDeck(mode)
+            // Deterministic deck with seed; also record full-state history scaffolding
+            val seed = kotlin.random.Random.nextLong()
+            gameSeed = seed
+            val deck = SetAlgorithms.generateDeck(mode, seed)
+            initialDeckEncodings = deck.map { it.encoding }
+            events.clear()
+
             val setType = mode.setTypes.first()
             val board = SetAlgorithms.findBoard(deck, mode, setType)
+            val startIndex = (0..(deck.size - board.size)).firstOrNull { i ->
+                deck.subList(i, i + board.size) == board
+            } ?: 0
+            val reorderedDeck = if (startIndex == 0) deck else buildList(deck.size) {
+                addAll(board)
+                addAll(deck.take(startIndex))
+                addAll(deck.drop(startIndex + board.size))
+            }
 
             val currentTime = System.currentTimeMillis()
             _gameState.value = GameState(
                 gameId = generateGameId(),
                 mode = mode,
-                deck = deck,
+                deck = reorderedDeck,
                 board = board,
                 selectedCards = emptySet(),
                 foundSets = emptyList(),
@@ -58,7 +98,49 @@ class GameViewModel @javax.inject.Inject constructor(
                 timestamp = currentTime
             )
 
+            initialDeckEncodings = reorderedDeck.map { it.encoding }
+
+            // Record a start event and initial deal size for precise reconstruction
+            events += GameEvent(
+                type = "start",
+                timestamp = currentTime,
+                playerId = currentUid.value,
+                boardSize = board.size
+            )
+
             _gameResult.value = null
+
+            // Persist a provisional record immediately so history appears during play
+            val uid = currentUid.value
+            if (uid != null) {
+                val modeType = when (mode.id) {
+                    "ultra" -> GameModeType.ULTRA
+                    else -> GameModeType.NORMAL
+                }
+                val provisional = GameRecord(
+                    gameId = _gameState.value.gameId,
+                    creationTimestamp = currentTime,
+                    finishTimestamp = currentTime,
+                    hostPlayerId = uid,
+                    totalPlayers = 1,
+                    gameMode = modeType,
+                    playerMode = PlayerMode.SOLO,
+                    winners = emptyList(),
+                    setsFoundHistory = emptyList(),
+                    playerStats = listOf(
+                        PlayerGameStats(
+                            playerId = uid, setsFound = 0, timeMs = 0
+                        )
+                    )
+                )
+                viewModelScope.launch {
+                    try {
+                        historyRepository.addGameRecord(provisional)
+                    } catch (t: Throwable) {
+                        android.util.Log.e("GameVM", "addGameRecord(provisional) failed", t)
+                    }
+                }
+            }
 
             // Start the live timer
             startTimer()
@@ -113,36 +195,56 @@ class GameViewModel @javax.inject.Inject constructor(
         }
 
         if (isValidSet) {
-            // Valid set found
-            val foundSet = FoundSet(
-                cards = selectedCards,
-                type = setType,
-                timestamp = System.currentTimeMillis()
-            )
+            viewModelScope.launch {
+                // Valid set found
+                val foundSet = FoundSet(
+                    cards = selectedCards,
+                    type = setType,
+                    foundBy = currentDisplayName.value,
+                    timestamp = System.currentTimeMillis()
+                )
 
-            val newFoundSets = currentState.foundSets + foundSet
-            val currentTime = System.currentTimeMillis()
-            val newElapsedTime = currentTime - currentState.startTime
-            val newUsedCards = currentState.usedCards + selectedCards.toSet()
+                val newFoundSets = currentState.foundSets + foundSet
+                val currentTime = System.currentTimeMillis()
+                val newElapsedTime = currentTime - currentState.startTime
+                val newUsedCards = currentState.usedCards + selectedCards.toSet()
 
-            // Remove found cards and update board
-            val (newDeck, newBoardSize) = removeCardsAndUpdateBoard(selectedCards, currentState.deck, currentState.mode, newUsedCards)
-            val newBoard = newDeck.take(newBoardSize)
+                // Remove found cards and update board (off main thread to avoid UI stutter)
+                val (newDeck, newBoardSize) = kotlinx.coroutines.withContext(Dispatchers.Default) {
+                    removeCardsAndUpdateBoard(
+                        selectedCards,
+                        currentState.deck,
+                        currentState.board.size,
+                        currentState.mode,
+                        newUsedCards
+                    )
+                }
+                val newBoard = newDeck.take(newBoardSize)
 
-            _gameState.value = currentState.copy(
-                deck = newDeck,
-                board = newBoard,
-                selectedCards = emptySet(),
-                foundSets = newFoundSets,
-                usedCards = newUsedCards,
-                elapsedTime = newElapsedTime,
-                lastAction = GameAction.CheckSet
-            )
+                _gameState.value = currentState.copy(
+                    deck = newDeck,
+                    board = newBoard,
+                    selectedCards = emptySet(),
+                    foundSets = newFoundSets,
+                    usedCards = newUsedCards,
+                    elapsedTime = newElapsedTime,
+                    lastAction = GameAction.CheckSet
+                )
 
-            _gameResult.value = GameResult.SetFound(foundSet)
+                // Record event for full-state reconstruction
+                events += GameEvent(
+                    type = "set",
+                    timestamp = foundSet.timestamp,
+                    playerId = currentUid.value,
+                    cardEncodings = selectedCards.map { it.encoding },
+                    boardSize = newBoard.size
+                )
 
-            // Check if game is completed
-            checkGameCompletion()
+                _gameResult.value = GameResult.SetFound(foundSet)
+
+                // Check if game is completed
+                checkGameCompletion()
+            }
         } else {
             // Invalid set
             _gameState.value = currentState.copy(
@@ -170,6 +272,14 @@ class GameViewModel @javax.inject.Inject constructor(
                 hintsUsed = currentState.hintsUsed + 1,
                 lastAction = GameAction.UseHint
             )
+            // Record hint event
+            events += GameEvent(
+                type = "hint",
+                timestamp = System.currentTimeMillis(),
+                playerId = currentUid.value,
+                cardEncodings = hintSet.map { idx -> currentState.board[idx].encoding },
+                boardSize = currentState.board.size
+            )
             _gameResult.value = GameResult.Hint(hintSet)
         } else {
             _gameResult.value = GameResult.NoSetsAvailable
@@ -192,6 +302,13 @@ class GameViewModel @javax.inject.Inject constructor(
             board = newBoard,
             selectedCards = emptySet(),
             lastAction = GameAction.DealCards
+        )
+        // Record deal event
+        events += GameEvent(
+            type = "deal",
+            timestamp = System.currentTimeMillis(),
+            playerId = currentUid.value,
+            boardSize = newBoardSize
         )
     }
 
@@ -219,11 +336,11 @@ class GameViewModel @javax.inject.Inject constructor(
     private fun removeCardsAndUpdateBoard(
         cardsToRemove: List<Card>,
         currentDeck: List<Card>,
+        currentBoardSize: Int,
         mode: GameMode,
         usedCards: Set<Card>
     ): Pair<List<Card>, Int> {
         val mutableDeck = currentDeck.toMutableList()
-        val currentBoardSize = currentDeck.size.coerceAtMost(currentDeck.size)
         val minBoardSize = mode.boardSize
 
         if (cardsToRemove.size == currentBoardSize) {
@@ -247,7 +364,8 @@ class GameViewModel @javax.inject.Inject constructor(
                     val remainingToRemove = cardIndices.size - i
                     if (cutoff + remainingToRemove <= mutableDeck.size) {
                         // Take cards from beyond cutoff to replace the found cards
-                        val replacementCards = mutableDeck.subList(cutoff, cutoff + remainingToRemove).toList()
+                        val replacementCards =
+                            mutableDeck.subList(cutoff, cutoff + remainingToRemove).toList()
 
                         // Replace found cards with replacement cards
                         for ((j, replacement) in replacementCards.withIndex()) {
@@ -322,36 +440,46 @@ class GameViewModel @javax.inject.Inject constructor(
         val uid = user?.uid ?: return
         // Build record
         val modeType = when (state.mode.id) {
-            "ultra" -> com.mobset.data.history.GameModeType.ULTRA
-            else -> com.mobset.data.history.GameModeType.NORMAL
+            "ultra" -> GameModeType.ULTRA
+            else -> GameModeType.NORMAL
         }
         val setsHistory = state.foundSets.map { fs ->
-            com.mobset.data.history.SetFoundEvent(
+            SetFoundEvent(
                 playerId = uid,
                 timestamp = fs.timestamp,
                 cardEncodings = fs.cards.map { it.encoding }
             )
         }
         val playerStats = listOf(
-            com.mobset.data.history.PlayerGameStats(
+            PlayerGameStats(
                 playerId = uid,
                 setsFound = state.foundSets.size,
                 timeMs = state.elapsedTime
             )
         )
-        val rec = com.mobset.data.history.GameRecord(
+
+
+        val rec = GameRecord(
             gameId = state.gameId,
             creationTimestamp = state.startTime,
             finishTimestamp = state.startTime + state.elapsedTime,
             hostPlayerId = uid,
             totalPlayers = 1,
             gameMode = modeType,
-            playerMode = com.mobset.data.history.PlayerMode.SOLO,
+            playerMode = PlayerMode.SOLO,
             winners = listOf(uid),
             setsFoundHistory = setsHistory,
-            playerStats = playerStats
+            playerStats = playerStats,
+            seed = gameSeed,
+            initialDeckEncodings = initialDeckEncodings,
+            events = events.toList(),
+            finalBoardEncodings = state.board.map { it.encoding }
         )
-        kotlin.runCatching { historyRepository.addGameRecord(rec) }
+        try {
+            historyRepository.updateGameRecord(rec)
+        } catch (t: Throwable) {
+            android.util.Log.e("GameVM", "updateGameRecord(final) failed", t)
+        }
     }
 
     private fun generateGameId(): String {
@@ -380,6 +508,41 @@ class GameViewModel @javax.inject.Inject constructor(
     private fun stopTimer() {
         timerJob?.cancel()
         timerJob = null
+    }
+
+    private fun computeFinalBoardEncodingsFromEvents(
+        mode: GameMode,
+        initialDeckEncodings: List<String>,
+        seed: Long?,
+        events: List<GameEvent>
+    ): List<String> {
+        val initial: List<Card> = if (initialDeckEncodings.isNotEmpty()) {
+            initialDeckEncodings.map { Card(it) }
+        } else {
+            SetAlgorithms.generateDeck(mode, seed)
+        }
+        val current = java.util.LinkedHashSet(initial)
+        events.sortedBy { it.timestamp }.forEach { e ->
+            if (e.type == "set") {
+                val enc = e.cardEncodings ?: emptyList()
+                enc.forEach { current.remove(Card(it)) }
+            }
+        }
+        val minBoardSize = mode.boardSize
+        val currentList = current.toList()
+        val board = mutableListOf<Card>()
+        var idx = 0
+        while (idx < currentList.size && board.size < minBoardSize) {
+            board.add(currentList[idx++])
+        }
+        while (idx < currentList.size) {
+            val setType = mode.setTypes.first()
+            if (SetAlgorithms.findSets(board, setType, mode).isNotEmpty()) break
+            val toAdd = 3 - (board.size % 3)
+            repeat(toAdd.coerceAtMost(currentList.size - idx)) { board.add(currentList[idx++]) }
+        }
+        if (board.isEmpty()) return currentList.take(minBoardSize).map { it.encoding }
+        return board.map { it.encoding }
     }
 
     override fun onCleared() {

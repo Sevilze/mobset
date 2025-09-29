@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -19,6 +20,7 @@ import com.mobset.domain.model.GameMode
  * Enhanced with Material 3 expressive components and animations.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Preview
 @Composable
 fun SingleplayerScreen(
     onNavigateToGame: (GameMode) -> Unit = {},

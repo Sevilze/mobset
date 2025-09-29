@@ -52,8 +52,8 @@ class PlayerStatsFromHistoryRepository @Inject constructor(
                 }
             }
         }
-        val avgSets = if (finishedGames > 0) totalSets.toDouble() / finishedGames else 0.0
-        val avgLen = if (finishedGames > 0) sumDurations / finishedGames else null
+        val avgSets = totalSets.toDouble() / finishedGames
+        val avgLen = sumDurations / finishedGames
         val rating = if (playerMode == PlayerMode.MULTIPLAYER) 1200 else null // placeholder
         AggregatedPlayerStats(
             playerId = playerId,

@@ -1,6 +1,7 @@
 package com.mobset.data.history
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -52,6 +53,20 @@ class FirestoreGameHistoryRepository @Inject constructor(
                             timeMs = (m["timeMs"] as? Number)?.toLong() ?: 0L
                         )
                     } ?: emptyList()
+
+                    val seed = doc.getLong("seed")
+                    val initialDeck = (doc.get("initialDeck") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                    val events = (doc.get("events") as? List<Map<String, Any?>>)?.map { m ->
+                        GameEvent(
+                            type = m["type"] as? String ?: "",
+                            timestamp = (m["timestamp"] as? Number)?.toLong() ?: 0L,
+                            playerId = m["playerId"] as? String,
+                            cardEncodings = (m["cardEncodings"] as? List<*>)?.filterIsInstance<String>(),
+                            boardSize = (m["boardSize"] as? Number)?.toInt()
+                        )
+                    } ?: emptyList()
+                    val finalBoard = (doc.get("finalBoard") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+
                     GameRecord(
                         gameId = gameId,
                         creationTimestamp = creation,
@@ -62,7 +77,11 @@ class FirestoreGameHistoryRepository @Inject constructor(
                         playerMode = pMode,
                         winners = winners,
                         setsFoundHistory = setsHist,
-                        playerStats = playerStats
+                        playerStats = playerStats,
+                        seed = seed,
+                        initialDeckEncodings = initialDeck,
+                        events = events,
+                        finalBoardEncodings = finalBoard
                     )
                 } catch (_: Throwable) { null }
             } ?: emptyList()
@@ -72,16 +91,28 @@ class FirestoreGameHistoryRepository @Inject constructor(
     }
 
     override suspend fun addGameRecord(record: GameRecord) {
-        val map = toMap(record)
-        col().document(record.gameId).set(map).await()
+        val core = toCoreMap(record)
+        col().document(record.gameId).set(core).await()
     }
 
     override suspend fun updateGameRecord(record: GameRecord) {
-        val map = toMap(record)
-        col().document(record.gameId).set(map).await()
+        val core = toCoreMap(record)
+        col().document(record.gameId).set(core, SetOptions.merge()).await()
+        runCatching {
+            col().document(record.gameId)
+                .set(toFullStateMap(record), SetOptions.merge())
+                .await()
+        }
+
+        val full = toFullStateMap(record)
+        col().document(record.gameId)
+            .collection("replay")
+            .document("v1")
+            .set(full, SetOptions.merge())
+            .await()
     }
 
-    private fun toMap(record: GameRecord): Map<String, Any?> = mapOf(
+    private fun toCoreMap(record: GameRecord): Map<String, Any?> = mapOf(
         "gameId" to record.gameId,
         "creationTimestamp" to record.creationTimestamp,
         "finishTimestamp" to record.finishTimestamp,
@@ -105,7 +136,24 @@ class FirestoreGameHistoryRepository @Inject constructor(
                 "setsFound" to s.setsFound,
                 "timeMs" to s.timeMs
             )
-        }
+        },
+        // Persist final board on top-level to avoid recomputation and extra reads
+        "finalBoard" to record.finalBoardEncodings
+    )
+
+    private fun toFullStateMap(record: GameRecord): Map<String, Any?> = mapOf(
+        "seed" to record.seed,
+        "initialDeck" to record.initialDeckEncodings,
+        "events" to record.events.map { e ->
+            buildMap<String, Any?> {
+                put("type", e.type)
+                put("timestamp", e.timestamp)
+                if (e.playerId != null) put("playerId", e.playerId)
+                if (e.cardEncodings != null) put("cardEncodings", e.cardEncodings)
+                if (e.boardSize != null) put("boardSize", e.boardSize)
+            }
+        },
+        "finalBoard" to record.finalBoardEncodings
     )
 }
 

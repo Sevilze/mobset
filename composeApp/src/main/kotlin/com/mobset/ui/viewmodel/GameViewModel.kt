@@ -67,7 +67,6 @@ class GameViewModel @Inject constructor(
             val seed = kotlin.random.Random.nextLong()
             gameSeed = seed
             val deck = SetAlgorithms.generateDeck(mode, seed)
-            initialDeckEncodings = deck.map { it.encoding }
             events.clear()
 
             val setType = mode.setTypes.first()
@@ -457,8 +456,6 @@ class GameViewModel @Inject constructor(
                 timeMs = state.elapsedTime
             )
         )
-
-
         val rec = GameRecord(
             gameId = state.gameId,
             creationTimestamp = state.startTime,

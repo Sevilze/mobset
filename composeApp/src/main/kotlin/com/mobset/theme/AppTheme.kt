@@ -8,16 +8,18 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+
 // Material 3 expressive color scheme implementation
 // Using built-in Compose Material 3 color utilities
-
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     seedColor: Color = Color(0xFF6750A4),
+    cardColors: List<Color> = listOf(Color(0xFFFF0101), Color(0xFF008002), Color(0xFFFB8C00)),
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -27,10 +29,14 @@ fun AppTheme(
         }
         else -> expressiveColorScheme(darkTheme, seedColor)
     }
-    MaterialTheme(
-        colorScheme = colorScheme,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalCardColors provides cardColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            content = content
+        )
+    }
 }
 
 private fun expressiveColorScheme(dark: Boolean, seed: Color) =

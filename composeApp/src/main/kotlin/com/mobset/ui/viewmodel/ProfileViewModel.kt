@@ -15,6 +15,7 @@ import com.mobset.domain.model.GameMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,7 +84,7 @@ class ProfileViewModel @Inject constructor(
     private val _winnerNames = MutableStateFlow<Map<String, String>>(emptyMap())
     val winnerNames: StateFlow<Map<String, String>> = _winnerNames
 
-    private val nameJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
+    private val nameJobs = mutableMapOf<String, Job>()
 
     init {
         // Keep a small cache of winner display names for history list

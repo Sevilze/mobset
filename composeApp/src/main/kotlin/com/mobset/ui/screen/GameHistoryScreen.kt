@@ -79,7 +79,7 @@ fun GameHistoryScreen(onNavigateBack: () -> Unit, onOpenDetail: (GameRecord) -> 
                     val subtitleText = if (names.size == g.winners.size) {
                         "Players: ${g.totalPlayers} · Winners: ${names.joinToString()}"
                     } else {
-                        "Players: ${g.totalPlayers} · Winners: —"
+                        "Players: ${g.totalPlayers} · Winners: \u2014"
                     }
                     GameHistoryItem(
                         title = "${g.playerMode.name.lowercase().replaceFirstChar { it.uppercase() }} · ${g.gameMode.name.lowercase().replaceFirstChar { it.uppercase() }}",

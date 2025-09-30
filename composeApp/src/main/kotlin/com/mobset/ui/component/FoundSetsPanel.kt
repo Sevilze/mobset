@@ -1,17 +1,23 @@
 package com.mobset.ui.component
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.mobset.domain.algorithm.SetAlgorithms
 import com.mobset.domain.model.Card
@@ -37,17 +43,56 @@ fun FoundSetsPanel(
         tonalElevation = 3.dp,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 104.dp)
+            .heightIn(min = 120.dp)
     ) {
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            itemsIndexed(foundSets, key = { index, fs -> fs.timestamp.hashCode() + index }) { _, fs ->
-                FoundSetPreview(fs = fs, mode = mode, showTimestamps = showTimestamps)
+        val listState = rememberLazyListState()
+        val spacing = 16.dp
+        val density = LocalDensity.current
+        val spacingPx = with(density) { spacing.toPx() }
+
+        // Auto-follow newest found set (scrolls to the right)
+        LaunchedEffect(foundSets.size) {
+            if (foundSets.isNotEmpty()) listState.animateScrollToItem(foundSets.lastIndex)
+        }
+
+        Column(Modifier.fillMaxWidth()) {
+            LazyRow(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                itemsIndexed(foundSets, key = { index, fs -> fs.timestamp.hashCode() + index }) { _, fs ->
+                    FoundSetPreview(fs = fs, mode = mode, showTimestamps = showTimestamps)
+                }
+            }
+
+            // Small visible scrollbar
+            val info = listState.layoutInfo
+            val viewportPx = (info.viewportEndOffset - info.viewportStartOffset).coerceAtLeast(1)
+            val avgItem = info.visibleItemsInfo.map { it.size }.average().toFloat().takeIf { it > 0f } ?: 64f
+            val contentPx = (avgItem + spacingPx) * info.totalItemsCount - spacingPx
+            val thumbFrac = (viewportPx.toFloat() / contentPx).coerceIn(0.08f, 1f)
+            val scrollPx = (listState.firstVisibleItemIndex * (avgItem + spacingPx) + listState.firstVisibleItemScrollOffset.toFloat()).coerceAtLeast(0f)
+            val maxScroll = (contentPx - viewportPx).coerceAtLeast(1f)
+            val offsetFrac = (scrollPx / maxScroll).coerceIn(0f, 1f)
+
+            val trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+            val thumbColor = MaterialTheme.colorScheme.primary
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .padding(horizontal = 12.dp)
+            ) {
+                val w = size.width
+                val h = size.height
+                drawRect(color = trackColor, size = Size(w, h))
+                val tw = w * thumbFrac
+                val tx = (w - tw) * offsetFrac
+                drawRect(color = thumbColor, topLeft = Offset(tx, 0f), size = Size(tw, h))
             }
         }
     }

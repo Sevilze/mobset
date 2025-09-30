@@ -98,13 +98,13 @@ class FirestoreGameHistoryRepository @Inject constructor(
     override suspend fun updateGameRecord(record: GameRecord) {
         val core = toCoreMap(record)
         col().document(record.gameId).set(core, SetOptions.merge()).await()
+        val full = toFullStateMap(record)
         runCatching {
             col().document(record.gameId)
-                .set(toFullStateMap(record), SetOptions.merge())
+                .set(full, SetOptions.merge())
                 .await()
         }
 
-        val full = toFullStateMap(record)
         col().document(record.gameId)
             .collection("replay")
             .document("v1")

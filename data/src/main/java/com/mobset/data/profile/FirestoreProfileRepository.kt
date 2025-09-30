@@ -34,7 +34,13 @@ class FirestoreProfileRepository @Inject constructor(
                         photoUrl = data["photoUrl"] as? String,
                         gamesPlayed = (data["gamesPlayed"] as? Number)?.toInt() ?: 0,
                         bestTimeMs = (data["bestTimeMs"] as? Number)?.toLong() ?: 0L,
-                        setsFound = (data["setsFound"] as? Number)?.toInt() ?: 0
+                        setsFound = (data["setsFound"] as? Number)?.toInt() ?: 0,
+                        themeDynamic = data["themeDynamic"] as? Boolean,
+                        themeAccentHex = data["themeAccentHex"] as? String,
+                        themeTemplate = data["themeTemplate"] as? String,
+                        cardColorHex1 = data["cardColorHex1"] as? String,
+                        cardColorHex2 = data["cardColorHex2"] as? String,
+                        cardColorHex3 = data["cardColorHex3"] as? String
                     )
                 )
             }
@@ -50,7 +56,13 @@ class FirestoreProfileRepository @Inject constructor(
             "photoUrl" to profile.photoUrl,
             "gamesPlayed" to profile.gamesPlayed,
             "bestTimeMs" to profile.bestTimeMs,
-            "setsFound" to profile.setsFound
+            "setsFound" to profile.setsFound,
+            "themeDynamic" to profile.themeDynamic,
+            "themeAccentHex" to profile.themeAccentHex,
+            "themeTemplate" to profile.themeTemplate,
+            "cardColorHex1" to profile.cardColorHex1,
+            "cardColorHex2" to profile.cardColorHex2,
+            "cardColorHex3" to profile.cardColorHex3
         )
         doc.set(map).await()
     }

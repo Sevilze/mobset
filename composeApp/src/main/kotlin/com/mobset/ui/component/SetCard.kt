@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobset.domain.model.*
 import com.mobset.theme.AppTheme
+import com.mobset.theme.LocalCardColors
 
 /**
  * Composable that renders a Set card with proper visual traits.
@@ -199,8 +201,10 @@ private fun DrawScope.renderPathsByShade(
  * Draw stripes once across full DrawScope.size then clip to the shapes.
  */
 private fun DrawScope.drawStripedPatternContinuous(color: Color, horizontal: Boolean) {
-    val stripeThickness = 1.dp.toPx()
-    val spacing = 2.dp.toPx()
+    // Scale stripe thickness and spacing with canvas size for visual consistency across usages
+    val unit = (size.minDimension.coerceAtLeast(1f)) / 100f
+    val stripeThickness = (unit * 1.6f).coerceAtLeast(0.75f)
+    val spacing = stripeThickness * 2f
 
     if (horizontal) {
         var y = -size.height
@@ -269,7 +273,7 @@ private fun createShapePath(shape: CardShape, size: Size): Path {
 
 private fun createOvalPath(path: Path, scaleX: Float, scaleY: Float) {
     path.addRoundRect(
-        androidx.compose.ui.geometry.RoundRect(
+        RoundRect(
             left = 11.49999f * scaleX,
             top = 13.866646f * scaleY,
             right = 187.5f * scaleX,
@@ -401,14 +405,11 @@ private fun createHourglassPath(path: Path, scaleX: Float, scaleY: Float) {
  */
 @Composable
 private fun getSymbolColor(cardColor: CardColor): Color {
-    val isDark = isSystemInDarkTheme()
-
-    return when (cardColor) {
-        CardColor.RED -> if (isDark) Color(0xFFFFB047) else Color(0xFFFF0101)
-        CardColor.GREEN -> if (isDark) Color(0xFF00B803) else Color(0xFF008002)
-        CardColor.BLUE -> if (isDark) Color(0xFF47B0FF) else Color(0xFFFB8C00)
-        CardColor.PURPLE -> if (isDark) Color(0xFFFF47FF) else Color(0xFF800080)
-    }
+    val palette = LocalCardColors.current
+    val idx = cardColor.value
+    return palette.getOrNull(idx)
+        ?: palette.lastOrNull()
+        ?: Color(0xFFFF0101)
 }
 
 @Preview

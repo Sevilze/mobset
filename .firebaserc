@@ -1,7 +1,17 @@
 {
   "projects": {
-    "production": "mobset-4980b"
+    "production": "mobset-4980b",
+    "default": "mobset-4980b",
+    "dev": "mobset-4980b"
   },
-  "targets": {},
+  "targets": {
+    "mobset-4980b": {
+      "database": {
+        "prod": [
+          "mobset-4980b-685e5"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

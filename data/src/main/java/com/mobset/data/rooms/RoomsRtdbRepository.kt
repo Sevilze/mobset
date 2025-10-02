@@ -15,6 +15,10 @@ class RoomsRtdbRepository @Inject constructor(
     private val rtdb: FirebaseDatabase
 ) : RoomsRepository {
 
+    private val allowedModes = setOf(
+        "normal", "ultraset"
+    )
+
     private fun gamesRef(): DatabaseReference = rtdb.getReference("games")
     private fun publicRef(): DatabaseReference = rtdb.getReference("publicGames")
     private fun userGamesRef(uid: String): DatabaseReference = rtdb.getReference("userGames").child(uid)
@@ -36,16 +40,18 @@ class RoomsRtdbRepository @Inject constructor(
                         val access = if (accessRaw == "password") Access.PASSWORD else Access.PUBLIC
                         val mode = g.child("mode").getValue(String::class.java) ?: "normal"
                         val createdAt = g.child("createdAt").getValue(Long::class.java) ?: 0L
+                        val name = g.child("name").getValue(String::class.java) ?: gameId
                         val users = g.child("users").childrenCount.toInt()
                         val summary = RoomSummary(
                             id = gameId,
+                            name = name,
                             hostId = host,
                             access = access,
                             mode = mode,
                             createdAt = createdAt,
                             playerCount = users,
                         )
-                        // Collect asynchronously andre-emit a consolidated list.
+                        // Collect asynchronously and re-emit a consolidated list.
                         list.add(summary)
                         trySend(list.sortedByDescending { it.createdAt })
                     }
@@ -72,6 +78,7 @@ class RoomsRtdbRepository @Inject constructor(
                 val statusRaw = s.child("status").getValue(String::class.java) ?: "waiting"
                 val createdAt = s.child("createdAt").getValue(Long::class.java) ?: 0L
                 val startedAt = s.child("startedAt").getValue(Long::class.java)
+                val name = s.child("name").getValue(String::class.java) ?: roomId
                 val users = mutableMapOf<String, Long>()
                 s.child("users").children.forEach { u ->
                     val uid = u.key ?: return@forEach
@@ -80,6 +87,7 @@ class RoomsRtdbRepository @Inject constructor(
                 }
                 val state = RoomState(
                     id = roomId,
+                    name = name,
                     hostId = host,
                     access = access,
                     mode = mode,
@@ -97,21 +105,22 @@ class RoomsRtdbRepository @Inject constructor(
     }
 
     override suspend fun createRoom(
-        roomId: String,
         hostId: String,
         access: Access,
         mode: String,
-        passwordPlain: String?,
-        enableHint: Boolean
-    ) {
+        roomName: String,
+        passwordPlain: String?
+    ): String {
+        require(allowedModes.contains(mode)) { "Invalid mode: $mode" }
         val now = ServerValue.TIMESTAMP
+        val roomId = gamesRef().push().key ?: UUID.randomUUID().toString().replace("-", "")
         val created = mutableMapOf<String, Any?>().apply {
             put("host", hostId)
+            put("name", roomName.take(50))
             put("access", if (access == Access.PASSWORD) "password" else "public")
             put("mode", mode)
             put("status", "waiting")
             put("createdAt", now)
-            put("enableHint", enableHint)
             if (access == Access.PASSWORD && !passwordPlain.isNullOrBlank()) {
                 val salt = UUID.randomUUID().toString().replace("-", "")
                 put("pwdSalt", salt)
@@ -119,13 +128,17 @@ class RoomsRtdbRepository @Inject constructor(
             }
             // Users map starts empty; host will auto-join on first open
         }
-        val updates = hashMapOf<String, Any?>()
-        updates["/games/$roomId"] = created
+
+        gamesRef().child(roomId).setValue(created).await()
+        val indexUpdates = hashMapOf<String, Any?>()
         if (access == Access.PUBLIC) {
-            updates["/publicGames/$roomId"] = now
+            indexUpdates["/publicGames/$roomId"] = ServerValue.TIMESTAMP
         }
-        updates["/userGames/$hostId/$roomId"] = now
-        rtdb.reference.updateChildren(updates).await()
+        indexUpdates["/userGames/$hostId/$roomId"] = ServerValue.TIMESTAMP
+        if (indexUpdates.isNotEmpty()) {
+            rtdb.reference.updateChildren(indexUpdates).await()
+        }
+        return roomId
     }
 
     override suspend fun joinRoom(roomId: String, uid: String, passwordPlain: String?) {
@@ -161,11 +174,31 @@ class RoomsRtdbRepository @Inject constructor(
         val game = ref.get().await()
         val host = game.child("host").getValue(String::class.java)
         require(host == hostId) { "Only host can start" }
+        val status = game.child("status").getValue(String::class.java) ?: "waiting"
+        require(status == "waiting") { "Game already started or finished" }
         val updates = mapOf(
             "status" to "ingame",
             "startedAt" to ServerValue.TIMESTAMP
         )
         ref.updateChildren(updates).await()
+    }
+
+    override suspend fun disbandRoom(roomId: String, hostId: String) {
+        val ref = gamesRef().child(roomId)
+        val game = ref.get().await()
+        if (!game.exists()) return
+        val host = game.child("host").getValue(String::class.java)
+        require(host == hostId) { "Only host can disband" }
+        val users = game.child("users").children.mapNotNull { it.key }
+
+        // Build updates to remove game and index references atomically
+        val updates = hashMapOf<String, Any?>()
+        updates["/games/$roomId"] = null
+        updates["/publicGames/$roomId"] = null
+        users.forEach { uid -> updates["/userGames/$uid/$roomId"] = null }
+        updates["/userGames/$hostId/$roomId"] = null
+        updates["/chats/$roomId"] = null
+        rtdb.reference.updateChildren(updates).await()
     }
 
     private fun sha256(text: String): String {

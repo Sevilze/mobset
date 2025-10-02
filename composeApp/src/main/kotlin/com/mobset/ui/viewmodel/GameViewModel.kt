@@ -32,6 +32,8 @@ class GameViewModel @Inject constructor(
     private val historyRepository: GameHistoryRepository
 ) : ViewModel() {
 
+    private var hintsEnabledFlag: Boolean = false
+
     private val currentDisplayName = MutableStateFlow<String?>(null)
     private val currentUid = MutableStateFlow<String?>(null)
 
@@ -61,7 +63,7 @@ class GameViewModel @Inject constructor(
     /**
      * Starts a new game with the specified mode.
      */
-    fun startNewGame(mode: GameMode) {
+    fun startNewGame(mode: GameMode, hintsEnabled: Boolean) {
         viewModelScope.launch {
             // Deterministic deck with seed; also record full-state history scaffolding
             val seed = kotlin.random.Random.nextLong()
@@ -81,6 +83,7 @@ class GameViewModel @Inject constructor(
             }
 
             val currentTime = System.currentTimeMillis()
+            hintsEnabledFlag = hintsEnabled
             _gameState.value = GameState(
                 gameId = generateGameId(),
                 mode = mode,
@@ -130,13 +133,15 @@ class GameViewModel @Inject constructor(
                         PlayerGameStats(
                             playerId = uid, setsFound = 0, timeMs = 0
                         )
-                    )
+)
                 )
-                viewModelScope.launch {
-                    try {
-                        historyRepository.addGameRecord(provisional)
-                    } catch (t: Throwable) {
-                        android.util.Log.e("GameVM", "addGameRecord(provisional) failed", t)
+                if (!hintsEnabledFlag) {
+                    viewModelScope.launch {
+                        try {
+                            historyRepository.addGameRecord(provisional)
+                        } catch (t: Throwable) {
+                            android.util.Log.e("GameVM", "addGameRecord(provisional) failed", t)
+                        }
                     }
                 }
             }
@@ -258,9 +263,12 @@ class GameViewModel @Inject constructor(
     /**
      * Provides a hint by highlighting cards that form a valid set.
      */
+
+
     fun useHint() {
         val currentState = _gameState.value
         if (currentState.gameStatus != GameStatus.IN_PROGRESS) return
+        if (!hintsEnabledFlag) return
 
         val setType = currentState.mode.setTypes.first()
         val availableSets = SetAlgorithms.findSets(currentState.board, setType, currentState.mode)
@@ -472,10 +480,12 @@ class GameViewModel @Inject constructor(
             events = events.toList(),
             finalBoardEncodings = state.board.map { it.encoding }
         )
-        try {
-            historyRepository.updateGameRecord(rec)
-        } catch (t: Throwable) {
-            android.util.Log.e("GameVM", "updateGameRecord(final) failed", t)
+        if (!hintsEnabledFlag) {
+            try {
+                historyRepository.updateGameRecord(rec)
+            } catch (t: Throwable) {
+                android.util.Log.e("GameVM", "updateGameRecord(final) failed", t)
+            }
         }
     }
 

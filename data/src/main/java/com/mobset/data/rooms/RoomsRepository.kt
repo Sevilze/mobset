@@ -7,15 +7,18 @@ import kotlinx.coroutines.flow.Flow
  */
 data class RoomSummary(
     val id: String,
+    val name: String,
     val hostId: String,
     val access: Access,
     val mode: String,
     val createdAt: Long,
     val playerCount: Int,
+    val hostName: String? = null,
 )
 
 data class RoomState(
     val id: String,
+    val name: String,
     val hostId: String,
     val access: Access,
     val mode: String,
@@ -34,16 +37,16 @@ interface RoomsRepository {
     fun observeRoom(roomId: String): Flow<RoomState?>
 
     suspend fun createRoom(
-        roomId: String,
         hostId: String,
         access: Access,
         mode: String,
+        roomName: String,
         passwordPlain: String? = null,
-        enableHint: Boolean = false,
-    )
+    ): String
 
     suspend fun joinRoom(roomId: String, uid: String, passwordPlain: String? = null)
     suspend fun leaveRoom(roomId: String, uid: String)
     suspend fun startGame(roomId: String, hostId: String)
+    suspend fun disbandRoom(roomId: String, hostId: String)
 }
 

@@ -23,11 +23,12 @@ import com.mobset.domain.model.GameMode
 @Preview
 @Composable
 fun SingleplayerScreen(
-    onNavigateToGame: (GameMode) -> Unit = {},
+    onNavigateToGame: (GameMode, Boolean) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var selectedMode by remember { mutableStateOf<GameMode?>(null) }
-    
+    var hintsEnabled by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -98,16 +99,26 @@ fun SingleplayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Action buttons
+            // Pre-start options
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Hints", style = MaterialTheme.typography.labelLarge)
+                    Switch(checked = hintsEnabled, onCheckedChange = { hintsEnabled = it })
+                }
+
+                // Action buttons
                 // Start game button
                 Button(
                     onClick = {
                         selectedMode?.let { mode ->
-                            onNavigateToGame(mode)
+                            onNavigateToGame(mode, hintsEnabled)
                         }
                     },
                     enabled = selectedMode != null,

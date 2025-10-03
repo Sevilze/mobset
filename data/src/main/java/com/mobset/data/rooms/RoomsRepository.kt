@@ -30,7 +30,7 @@ data class RoomState(
 
 enum class Access { PUBLIC, PASSWORD }
 
-enum class Status { waiting, ingame }
+enum class Status { waiting, ingame, completed }
 
 interface RoomsRepository {
     fun observePublicRooms(limit: Int = 50): Flow<List<RoomSummary>>

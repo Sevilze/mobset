@@ -48,7 +48,6 @@ import com.mobset.ui.screen.*
 import com.mobset.ui.viewmodel.AuthViewModel
 import com.mobset.ui.viewmodel.ProfileViewModel
 
-
 private enum class RootRoute(val route: String) { Loading("loading"), Root("root") }
 
 private sealed class BottomTab(val route: String, val label: String, val icon: ImageVector) {
@@ -95,9 +94,9 @@ fun SetApp() {
         bottomBar = {
             val backStack by navController.currentBackStackEntryAsState()
             val currentRoute = backStack?.destination?.route
-            val isGameRoute = currentRoute?.startsWith("game") == true
+            val isGameRoute = currentRoute?.startsWith("game") == true || currentRoute?.startsWith("mpgame") == true
             if (isGameRoute) {
-                // Hide standard bottom bar without instantiating game VM here to avoid jank
+                // Hide standard bottom bar during gameplay (singleplayer/multiplayer)
                 Spacer(modifier = Modifier)
             } else {
                 NavigationBar {
@@ -162,13 +161,14 @@ fun SetApp() {
                     }
                     composable(BottomTab.Singleplayer.route) {
                         SingleplayerScreen(
-                            onNavigateToGame = { gameMode ->
-                                navController.navigate("game/${gameMode.id}")
+                            onNavigateToGame = { gameMode, hintsEnabled ->
+                                val hints = if (hintsEnabled) 1 else 0
+                                navController.navigate("game/${gameMode.id}?hints=${'$'}hints")
                             }
                         )
                     }
                     composable(BottomTab.Multiplayer.route) {
-                        MultiplayerScreen()
+                        MultiplayerScreen(onOpenRoom = { id -> navController.navigate("room/${id}") })
                     }
                     composable(BottomTab.Playground.route) {
                         PlaygroundScreen()
@@ -184,15 +184,41 @@ fun SetApp() {
                     }
 
                     composable(
-                        route = "game/{gameModeId}",
-                        arguments = listOf(navArgument("gameModeId") { type = NavType.StringType })
+                        route = "game/{gameModeId}?hints={hints}",
+                        arguments = listOf(
+                            navArgument("gameModeId") { type = NavType.StringType },
+                            navArgument("hints") { type = NavType.IntType; defaultValue = 0 }
+                        )
                     ) { backStackEntry ->
-                        val gameModeId =
-                            backStackEntry.arguments?.getString("gameModeId") ?: "normal"
+                        val gameModeId = backStackEntry.arguments?.getString("gameModeId") ?: "normal"
                         val gameMode = GameMode.fromId(gameModeId) ?: GameMode.NORMAL
+                        val hintsEnabled = (backStackEntry.arguments?.getInt("hints") ?: 0) == 1
                         GameScreen(
                             gameMode = gameMode,
+                            hintsEnabled = hintsEnabled,
                             onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = "mpgame/{roomId}",
+                        arguments = listOf(navArgument("roomId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val roomIdArg = backStackEntry.arguments?.getString("roomId") ?: return@composable
+                        MultiplayerGameScreen(
+                            roomId = roomIdArg,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(
+                        route = "room/{roomId}",
+                        arguments = listOf(navArgument("roomId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val roomId = backStackEntry.arguments?.getString("roomId") ?: return@composable
+                        RoomScreen(
+                            roomId = roomId,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToGame = { id -> navController.navigate("mpgame/${id}") }
                         )
                     }
                 }

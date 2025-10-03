@@ -33,10 +33,11 @@ import kotlinx.coroutines.delay
 /**
  * Main game screen where the Set game is played.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GameScreen(
     gameMode: GameMode,
+    hintsEnabled: Boolean,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GameViewModel = hiltViewModel()
@@ -49,9 +50,9 @@ fun GameScreen(
     var hintedCards by remember { mutableStateOf<List<Int>>(emptyList()) }
 
     // Start game when screen is first composed
-    LaunchedEffect(gameMode) {
+    LaunchedEffect(gameMode, hintsEnabled) {
         if (gameState.gameStatus == GameStatus.NOT_STARTED) {
-            viewModel.startNewGame(gameMode)
+            viewModel.startNewGame(gameMode, hintsEnabled)
         }
     }
 
@@ -104,9 +105,10 @@ fun GameScreen(
                     }
                 },
                 actions = {
+
                     IconButton(
                         onClick = { viewModel.useHint() },
-                        enabled = gameState.gameStatus == GameStatus.IN_PROGRESS
+                        enabled = gameState.gameStatus == GameStatus.IN_PROGRESS && hintsEnabled
                     ) {
                         Icon(Icons.Default.Info, contentDescription = "Hint")
                     }
@@ -192,7 +194,7 @@ fun GameScreen(
                                 }
                             },
                             confirmButton = {
-                                Button(onClick = { viewModel.startNewGame(gameMode) }) {
+                                Button(onClick = { viewModel.startNewGame(gameMode, hintsEnabled) }) {
                                     Text("Play Again")
                                 }
                             },

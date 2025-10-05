@@ -94,7 +94,7 @@ fun SetApp() {
         bottomBar = {
             val backStack by navController.currentBackStackEntryAsState()
             val currentRoute = backStack?.destination?.route
-            val isGameRoute = currentRoute?.startsWith("game") == true || currentRoute?.startsWith("mpgame") == true
+            val isGameRoute = currentRoute?.startsWith("game") == true || currentRoute?.startsWith("mpgame") == true || currentRoute?.startsWith("historyDetail") == true
             if (isGameRoute) {
                 // Hide standard bottom bar during gameplay (singleplayer/multiplayer)
                 Spacer(modifier = Modifier)

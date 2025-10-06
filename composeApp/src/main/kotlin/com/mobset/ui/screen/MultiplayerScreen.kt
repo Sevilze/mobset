@@ -45,6 +45,12 @@ private fun LobbyContent(
     var password by remember { mutableStateOf("") }
     var modeSheet by remember { mutableStateOf(false) }
 
+
+    fun displayModeLabel(m: String): String = when {
+        m.equals("ultraset", ignoreCase = true) -> "UltraSet"
+        else -> m.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -88,7 +94,7 @@ private fun LobbyContent(
                     label = { Text("Room name") },
                     modifier = Modifier.weight(1f)
                 )
-                Button(onClick = { modeSheet = true }) { Text("Mode: ${mode}") }
+                Button(onClick = { modeSheet = true }) { Text("Mode: ${displayModeLabel(mode)}") }
             }
             if (modeSheet) {
                 AlertDialog(
@@ -101,7 +107,7 @@ private fun LobbyContent(
                         LazyColumn(Modifier.heightIn(max = 320.dp)) {
                             items(allowedModes) { m ->
                                 ListItem(
-                                    headlineContent = { Text(m) },
+                                    headlineContent = { Text(displayModeLabel(m)) },
                                     trailingContent = { RadioButton(selected = (m == mode), onClick = { mode = m }) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -138,8 +144,8 @@ private fun LobbyContent(
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(r.name.ifBlank { r.id }, style = MaterialTheme.typography.titleMedium)
-                                val host = hostNames[r.hostId] ?: r.hostName ?: r.hostId
-                                Text("Host: ${host} • Mode: ${r.mode} • Players: ${r.playerCount}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                val host = hostNames[r.hostId] ?: r.hostName ?: "Unknown"
+                                Text("Host: ${host} • Mode: ${displayModeLabel(r.mode)} • Players: ${r.playerCount}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(onClick = { onOpenRoom(r.id) }) { Text("Join") }
                         }

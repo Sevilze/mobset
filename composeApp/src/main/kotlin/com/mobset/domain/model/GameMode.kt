@@ -30,7 +30,7 @@ data class GameMode(
         // Ultraset, select 4 cards forming two 3-card sets with a shared conjugate
         val ULTRA = GameMode(
             id = "ultra",
-            name = "Ultra",
+            name = "UltraSet",
             description = "4 traits like Normal; pick 4 cards: two 3-card sets sharing a conjugate",
             traitCount = 4,
             traitVariants = listOf(3, 3, 3, 3),
@@ -65,7 +65,16 @@ data class GameMode(
         
         val ALL_MODES = listOf(NORMAL, ULTRA, FOUR_SET, GHOST)
         
-        fun fromId(id: String): GameMode? = ALL_MODES.find { it.id == id }
+        fun fromId(id: String): GameMode? {
+            val norm = id.lowercase()
+            return when {
+                norm == "normal" -> NORMAL
+                norm == "ultra" || norm == "ultraset" -> ULTRA
+                norm == "4set" -> FOUR_SET
+                norm == "ghost" || norm == "ghostset" -> GHOST
+                else -> null
+            }
+        }
     }
 }
 

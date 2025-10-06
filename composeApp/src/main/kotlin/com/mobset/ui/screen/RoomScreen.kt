@@ -207,8 +207,8 @@ fun RoomScreen(
             }
         ) {
             RoomContent(
-                users = users.map { uid -> names[uid] ?: uid },
-                messages = messages.map { (names[it.userId] ?: it.userId) to it.message },
+                users = users.map { uid -> names[uid] ?: "Unknown" },
+                messages = messages.map { ((names[it.userId] ?: "Unknown")) to it.message },
                 onLeave = { vm.leave(); onNavigateBack() },
                 onSend = { vm.send(it) },
                 onStart = if (canStart) ({ vm.start() }) else null
@@ -252,10 +252,12 @@ fun RoomScreen(
                 )
             }
             // Navigate all current room members to multiplayer game when status flips to ingame
-            LaunchedEffect(state?.status, currentUser?.uid) {
+            val membershipKey = state?.users?.get(currentUser?.uid ?: "")
+            LaunchedEffect(state?.status, currentUser?.uid, membershipKey) {
                 val s = state ?: return@LaunchedEffect
                 val uid = currentUser?.uid ?: return@LaunchedEffect
-                if (s.status.name.equals("ingame", ignoreCase = true) && s.users.containsKey(uid)) {
+                val isMember = s.users.containsKey(uid) || uid == s.hostId
+                if (s.status.name.equals("ingame", ignoreCase = true) && isMember) {
                     onNavigateToGame(s.id)
                 }
             }

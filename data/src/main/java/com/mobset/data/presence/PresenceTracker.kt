@@ -1,12 +1,16 @@
 package com.mobset.data.presence
 
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
+import com.google.firebase.database.ValueEventListener
 import com.mobset.data.auth.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -39,15 +43,15 @@ class PresenceTracker @Inject constructor(
             connRef?.onDisconnect()?.removeValue()
             userRef.child("lastOnline").onDisconnect().setValue(ServerValue.TIMESTAMP)
 
-            infoRef.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
-                override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+            infoRef.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
                     val connected = snapshot.getValue(Boolean::class.java) == true
                     if (connected) {
                         // Mark this device connection only when connected
                         connRef?.setValue("android")
                     }
                 }
-                override fun onCancelled(error: com.google.firebase.database.DatabaseError) {}
+                override fun onCancelled(error: DatabaseError) {}
             })
         }.launchIn(scope)
     }

@@ -10,6 +10,8 @@ import com.mobset.data.history.GameHistoryRepository
 import com.mobset.data.history.FirestoreGameHistoryRepository
 import com.mobset.data.stats.PlayerStatsRepository
 import com.mobset.data.stats.PlayerStatsFromHistoryRepository
+import com.mobset.data.friends.FriendsRepository
+import com.mobset.data.friends.FirestoreFriendsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -33,5 +35,8 @@ abstract class FirestoreRepositoriesModule {
 
     @Binds @Singleton
     abstract fun bindPlayerStatsRepository(impl: PlayerStatsFromHistoryRepository): PlayerStatsRepository
+
+    @Binds @Singleton
+    abstract fun bindFriendsRepository(impl: FirestoreFriendsRepository): FriendsRepository
 }
 

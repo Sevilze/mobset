@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +20,7 @@ import com.mobset.ui.component.FoundSetsPanel
 import com.mobset.ui.component.SetCard
 import com.mobset.ui.util.formatElapsedTimeMs
 import com.mobset.ui.viewmodel.MultiplayerGameViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -130,18 +132,24 @@ fun MultiplayerGameScreen(
                             }
                         }
                         if (showCompletion) {
+
                             AlertDialog(
-                                onDismissRequest = {
-                                    showCompletion = false
-                                    onNavigateBack()
-                                },
+                                onDismissRequest = { /* force an explicit choice */ },
                                 title = { Text("Game Completed") },
                                 text = { Text("Final Time: ${formatElapsedTimeMs(gameState.elapsedTime)}") },
                                 confirmButton = {
                                     Button(onClick = {
                                         showCompletion = false
+                                        viewModel.acknowledgeCompletionStay()
                                         onNavigateBack()
-                                    }) { Text("OK") }
+                                    }) { Text("Return to Lobby") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = {
+                                        showCompletion = false
+                                        viewModel.acknowledgeCompletionLeave()
+                                        onNavigateBack()
+                                    }) { Text("Leave Room") }
                                 }
                             )
                         }

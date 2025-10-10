@@ -174,7 +174,18 @@ fun SetApp() {
                         PlaygroundScreen()
                     }
                     composable(BottomTab.Friends.route) {
-                        FriendsScreen()
+                        FriendsScreen(
+                            onJoinRoom = { id ->
+                                navController.navigate(BottomTab.Multiplayer.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                                navController.navigate("room/${id}")
+                            }
+                        )
                     }
                     composable(BottomTab.Profile.route) {
                         ProfileScreen(

@@ -6,6 +6,8 @@ import com.mobset.data.multiplayer.MultiplayerGameRepository
 import com.mobset.data.multiplayer.MultiplayerGameRtdbRepository
 import com.mobset.data.rooms.RoomsRepository
 import com.mobset.data.rooms.RoomsRtdbRepository
+import com.mobset.data.presence.PresenceRepository
+import com.mobset.data.presence.RtdbPresenceRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -17,6 +19,9 @@ import javax.inject.Singleton
 abstract class RtdbRepositoriesModule {
     @Binds @Singleton
     abstract fun bindRoomsRepository(impl: RoomsRtdbRepository): RoomsRepository
+
+    @Binds @Singleton
+    abstract fun bindPresenceRepository(impl: RtdbPresenceRepository): PresenceRepository
 
     @Binds @Singleton
     abstract fun bindChatRepository(impl: ChatRtdbRepository): ChatRepository

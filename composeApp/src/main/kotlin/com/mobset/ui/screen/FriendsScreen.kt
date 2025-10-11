@@ -22,17 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.mobset.ui.viewmodel.FriendsViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun FriendsScreen(
-    modifier: Modifier = Modifier,
-    onJoinRoom: (String) -> Unit = {}
-) {
+fun FriendsScreen(modifier: Modifier = Modifier, onJoinRoom: (String) -> Unit = {}) {
     val vm: FriendsViewModel = hiltViewModel()
     val friends by vm.friendsList.collectAsState()
     val profiles by vm.friendProfiles.collectAsState()
@@ -48,11 +45,12 @@ fun FriendsScreen(
     LaunchedEffect(invites, inviteProfiles) {
         invites.firstOrNull()?.let { inv ->
             val name = inviteProfiles[inv.fromUid]?.displayName ?: inv.fromUid
-            val res = snackbarHostState.showSnackbar(
-                message = "Room invite from ${name}",
-                actionLabel = "Join",
-                withDismissAction = true
-            )
+            val res =
+                snackbarHostState.showSnackbar(
+                    message = "Room invite from $name",
+                    actionLabel = "Join",
+                    withDismissAction = true
+                )
             if (res == SnackbarResult.ActionPerformed) onJoinRoom(inv.roomId)
             // best-effort clear on action or dismiss
             vm.clearInvite(inv.id)
@@ -61,7 +59,8 @@ fun FriendsScreen(
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(
-            modifier = modifier
+            modifier =
+            modifier
                 .fillMaxSize()
                 .padding(padding)
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
@@ -71,7 +70,11 @@ fun FriendsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.GroupAdd, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Friends", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "Friends",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(Modifier.weight(1f))
                 var inboxExpanded by remember { mutableStateOf(false) }
                 BadgedBox(badge = {
@@ -79,16 +82,33 @@ fun FriendsScreen(
                 }) {
                     ElevatedButton(onClick = { inboxExpanded = true }) { Text("Inbox") }
                 }
-                DropdownMenu(expanded = inboxExpanded, onDismissRequest = { inboxExpanded = false }) {
-                    if (incoming.isEmpty()) DropdownMenuItem(text = { Text("No requests") }, onClick = { inboxExpanded = false })
+                DropdownMenu(expanded = inboxExpanded, onDismissRequest = {
+                    inboxExpanded = false
+                }) {
+                    if (incoming.isEmpty()) {
+                        DropdownMenuItem(text = { Text("No requests") }, onClick = {
+                            inboxExpanded =
+                                false
+                        })
+                    }
                     incoming.forEach { req ->
                         DropdownMenuItem(
-                            text = { Text("Friend request from ${incomingProfiles[req.fromUid]?.displayName ?: req.fromUid}") },
+                            text = {
+                                Text(
+                                    "Friend request from ${incomingProfiles[req.fromUid]?.displayName ?: req.fromUid}"
+                                )
+                            },
                             onClick = { /* no-op */ },
                             trailingIcon = {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    TextButton(onClick = { vm.accept(req); inboxExpanded = false }) { Text("Accept") }
-                                    TextButton(onClick = { vm.decline(req.id); inboxExpanded = false }) { Text("Decline") }
+                                    TextButton(onClick = {
+                                        vm.accept(req)
+                                        inboxExpanded = false
+                                    }) { Text("Accept") }
+                                    TextButton(onClick = {
+                                        vm.decline(req.id)
+                                        inboxExpanded = false
+                                    }) { Text("Decline") }
                                 }
                             }
                         )
@@ -111,7 +131,10 @@ fun FriendsScreen(
                 }) { Text("Add") }
             }
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
                 items(friends, key = { it.uid }) { f ->
                     val p = profiles[f.uid]
                     FriendCard(
@@ -135,16 +158,18 @@ private fun FriendCard(
     photoUrl: String?,
     online: Boolean,
     onInvite: () -> Unit,
-    inviteEnabled: Boolean,
+    inviteEnabled: Boolean
 ) {
     Card(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxWidth()
             .animateContentSize(spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -165,10 +190,31 @@ private fun FriendCard(
                     )
                     Spacer(Modifier.width(8.dp))
                     Box(
-                        modifier = Modifier.size(10.dp).clip(CircleShape).background(if (online) Color(0xFF2ECC71) else MaterialTheme.colorScheme.outlineVariant)
+                        modifier =
+                        Modifier
+                            .size(
+                                10.dp
+                            ).clip(CircleShape)
+                            .background(
+                                if (online) {
+                                    Color(
+                                        0xFF2ECC71
+                                    )
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                }
+                            )
                     )
                 }
-                if (email.isNotBlank()) Text(email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (email.isNotBlank()) {
+                    Text(
+                        email,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
             Spacer(Modifier.width(12.dp))
             Button(onClick = onInvite, enabled = inviteEnabled) { Text("Invite") }
@@ -179,6 +225,6 @@ private fun FriendCard(
 @Preview
 @Composable
 private fun FriendCardPreview() {
-    FriendCard("Alice", "alice@example.com", null, online = true, onInvite = {}, inviteEnabled = true)
+    FriendCard("Alice", "alice@example.com", null, online = true, onInvite = {
+    }, inviteEnabled = true)
 }
-

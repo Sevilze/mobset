@@ -79,12 +79,17 @@ fun MultiplayerGameScreen(
         }
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier =
+            modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                     Text(
                         text = formatElapsedTimeMs(gameState.elapsedTime),
@@ -97,9 +102,10 @@ fun MultiplayerGameScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             when (gameState.gameStatus) {
-                GameStatus.NOT_STARTED -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                GameStatus.NOT_STARTED ->
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 GameStatus.IN_PROGRESS, GameStatus.PAUSED -> {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
@@ -128,15 +134,23 @@ fun MultiplayerGameScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             itemsIndexed(gameState.board) { index, card ->
-                                SetCard(card = card, isSelected = false, isHinted = false, onClick = {})
+                                SetCard(
+                                    card = card,
+                                    isSelected = false,
+                                    isHinted = false,
+                                    onClick = {}
+                                )
                             }
                         }
                         if (showCompletion) {
-
                             AlertDialog(
                                 onDismissRequest = { /* force an explicit choice */ },
                                 title = { Text("Game Completed") },
-                                text = { Text("Final Time: ${formatElapsedTimeMs(gameState.elapsedTime)}") },
+                                text = {
+                                    Text(
+                                        "Final Time: ${formatElapsedTimeMs(gameState.elapsedTime)}"
+                                    )
+                                },
                                 confirmButton = {
                                     Button(onClick = {
                                         showCompletion = false
@@ -155,7 +169,9 @@ fun MultiplayerGameScreen(
                         }
                     }
                 }
-                else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Error") }
+                else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Error")
+                }
             }
         }
     }
@@ -166,4 +182,3 @@ fun MultiplayerGameScreen(
 private fun MultiplayerGameScreenPreview() {
     MultiplayerGameScreen(roomId = "demo-room", onNavigateBack = { })
 }
-

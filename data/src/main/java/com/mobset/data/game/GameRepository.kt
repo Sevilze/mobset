@@ -12,6 +12,6 @@ data class GameSnapshot(
 
 interface GameRepository {
     fun observeGame(gameId: String): Flow<GameSnapshot?>
+
     suspend fun saveSnapshot(snapshot: GameSnapshot)
 }
-

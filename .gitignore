@@ -8,6 +8,7 @@ xcuserdata
 local.properties
 strings.xml
 google-services.json
+.editorconfig
 firebase/
 reference/
 .systemplan

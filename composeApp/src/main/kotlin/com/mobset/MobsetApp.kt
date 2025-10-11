@@ -12,4 +12,3 @@ class MobsetApp : Application() {
         presenceTracker.ensureTracking()
     }
 }
-

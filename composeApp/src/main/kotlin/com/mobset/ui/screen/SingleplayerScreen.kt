@@ -8,10 +8,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mobset.domain.model.GameMode
 
@@ -32,18 +32,19 @@ fun SingleplayerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         "Singleplayer",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
-                    ) 
+                    )
                 }
             )
         }
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier =
+            modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
@@ -51,10 +52,12 @@ fun SingleplayerScreen(
         ) {
             // Welcome section
             ElevatedCard(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .animateContentSize(
-                        animationSpec = spring(
+                        animationSpec =
+                        spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow
                         )
@@ -70,9 +73,9 @@ fun SingleplayerScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = "Select a game mode to start playing offline",
                         style = MaterialTheme.typography.bodyMedium,
@@ -80,9 +83,9 @@ fun SingleplayerScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Game mode selection
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -96,9 +99,9 @@ fun SingleplayerScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Pre-start options
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -125,7 +128,13 @@ fun SingleplayerScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = if (selectedMode != null) "Start ${selectedMode!!.name} Game" else "Select a Mode",
+                        text = if (selectedMode !=
+                            null
+                        ) {
+                            "Start ${selectedMode!!.name} Game"
+                        } else {
+                            "Select a Mode"
+                        },
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
@@ -144,27 +153,35 @@ private fun GameModeCard(
 ) {
     Card(
         onClick = onSelect,
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .animateContentSize(
-                animationSpec = spring(
+                animationSpec =
+                spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessLow
                 )
             ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
+        colors =
+        CardDefaults.cardColors(
+            containerColor =
+            if (isSelected) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.surface
             }
         ),
-        border = if (isSelected) {
+        border =
+        if (isSelected) {
             CardDefaults.outlinedCardBorder().copy(
                 width = 2.dp
             )
-        } else null,
-        elevation = CardDefaults.cardElevation(
+        } else {
+            null
+        },
+        elevation =
+        CardDefaults.cardElevation(
             defaultElevation = if (isSelected) 8.dp else 2.dp
         )
     ) {
@@ -180,39 +197,42 @@ private fun GameModeCard(
                     text = mode.name,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) {
+                    color =
+                    if (isSelected) {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSurface
                     }
                 )
-                
+
                 if (isSelected) {
                     AssistChip(
                         onClick = { },
                         label = { Text("Selected") },
-                        colors = AssistChipDefaults.assistChipColors(
+                        colors =
+                        AssistChipDefaults.assistChipColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
                             labelColor = MaterialTheme.colorScheme.onSecondary
                         )
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = mode.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isSelected) {
+                color =
+                if (isSelected) {
                     MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 }
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -221,12 +241,12 @@ private fun GameModeCard(
                     label = "Traits: ${mode.traitCount}",
                     isSelected = isSelected
                 )
-                
+
                 InfoChip(
                     label = "Board: ${mode.boardSize}",
                     isSelected = isSelected
                 )
-                
+
                 InfoChip(
                     label = "Deck: ${mode.deckSize}",
                     isSelected = isSelected
@@ -237,15 +257,12 @@ private fun GameModeCard(
 }
 
 @Composable
-private fun InfoChip(
-    label: String,
-    isSelected: Boolean,
-    modifier: Modifier = Modifier
-) {
+private fun InfoChip(label: String, isSelected: Boolean, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
-        color = if (isSelected) {
+        color =
+        if (isSelected) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
             MaterialTheme.colorScheme.surfaceVariant
@@ -254,7 +271,8 @@ private fun InfoChip(
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) {
+            color =
+            if (isSelected) {
                 MaterialTheme.colorScheme.onSecondaryContainer
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant

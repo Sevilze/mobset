@@ -1,15 +1,10 @@
 package com.mobset.data.history
 
-
-
 enum class PlayerMode { SOLO, MULTIPLAYER }
+
 enum class GameModeType { NORMAL, ULTRA }
 
-data class SetFoundEvent(
-    val playerId: String,
-    val timestamp: Long,
-    val cardEncodings: List<String>
-)
+data class SetFoundEvent(val playerId: String, val timestamp: Long, val cardEncodings: List<String>)
 
 /**
  * Normalized event record to reconstruct full game state.
@@ -22,11 +17,7 @@ data class GameEvent(
     val boardSize: Int? = null
 )
 
-data class PlayerGameStats(
-    val playerId: String,
-    val setsFound: Int,
-    val timeMs: Long
-)
+data class PlayerGameStats(val playerId: String, val setsFound: Int, val timeMs: Long)
 
 data class GameRecord(
     val gameId: String,
@@ -57,6 +48,6 @@ data class AggregatedPlayerStats(
     val averageSetsPerGame: Double,
     val fastestGameWonMs: Long?,
     val averageGameLengthMs: Long?,
-    val rating: Int? // ELO (only meaningful for multiplayer); null or N/A if solo-only
+    // ELO (only meaningful for multiplayer); null or N/A if solo-only
+    val rating: Int?
 )
-

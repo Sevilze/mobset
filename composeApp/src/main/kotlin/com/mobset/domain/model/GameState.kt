@@ -45,14 +45,23 @@ enum class GameStatus {
  */
 sealed class GameAction {
     data class SelectCard(val cardIndex: Int) : GameAction()
+
     data class DeselectCard(val cardIndex: Int) : GameAction()
+
     object ClearSelection : GameAction()
+
     object CheckSet : GameAction()
+
     object DealCards : GameAction()
+
     object UseHint : GameAction()
+
     object ShuffleBoard : GameAction()
+
     object NewGame : GameAction()
+
     object PauseGame : GameAction()
+
     object ResumeGame : GameAction()
 }
 
@@ -61,10 +70,16 @@ sealed class GameAction {
  */
 sealed class GameResult {
     object Success : GameResult()
+
     data class SetFound(val foundSet: FoundSet) : GameResult()
+
     data class InvalidSet(val selectedCards: List<Card>) : GameResult()
+
     data class Error(val message: String) : GameResult()
+
     data class Hint(val cardIndices: List<Int>) : GameResult()
+
     object NoSetsAvailable : GameResult()
+
     object GameCompleted : GameResult()
 }

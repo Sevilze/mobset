@@ -31,4 +31,3 @@ object AuthProvidesModule {
         return FirebaseAuth.getInstance()
     }
 }
-

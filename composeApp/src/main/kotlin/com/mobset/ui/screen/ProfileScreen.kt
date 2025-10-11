@@ -1,60 +1,52 @@
 package com.mobset.ui.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
-
-import androidx.compose.material.icons.Icons
-
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
-
-
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
-
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
-
+import com.mobset.data.history.AggregatedPlayerStats
+import com.mobset.data.history.GameModeType
+import com.mobset.data.history.PlayerMode
+import com.mobset.ui.util.formatElapsedTimeMs
 import com.mobset.ui.viewmodel.AppSettingsViewModel
 import com.mobset.ui.viewmodel.ProfileViewModel
-import com.mobset.ui.util.formatElapsedTimeMs
-
-import com.mobset.data.history.AggregatedPlayerStats
-import com.mobset.data.history.PlayerMode
-import com.mobset.data.history.GameModeType
-
 
 /**
  * Profile screen: user info, stats, and settings
@@ -80,7 +72,8 @@ fun ProfileScreen(
     val winLoss by vm.winLoss.collectAsState(initial = ProfileViewModel.WinLoss(0, 0))
 
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
@@ -90,19 +83,22 @@ fun ProfileScreen(
         // Header with avatar and centered identity
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             var showEdit by remember { mutableStateOf(false) }
-            var editName by remember(profile?.displayName) { mutableStateOf(profile?.displayName.orEmpty()) }
+            var editName by remember(profile?.displayName) {
+                mutableStateOf(profile?.displayName.orEmpty())
+            }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Image(
                     painter = rememberAsyncImagePainter(user?.photoUrl),
                     contentDescription = "Profile image",
-                    modifier = Modifier
-                        .size(256.dp)
+                    modifier =
+                    Modifier
+                        .size(96.dp)
                         .clip(CircleShape)
                 )
                 Spacer(Modifier.height(12.dp))
                 run {
                     var textWidthPx by remember { mutableStateOf(0) }
-                    var iconWidthPx: Double by remember { mutableStateOf( value = 0.0) }
+                    var iconWidthPx: Double by remember { mutableStateOf(value = 0.0) }
                     val density = LocalDensity.current
                     Box(Modifier.fillMaxWidth()) {
                         Text(
@@ -114,12 +110,18 @@ fun ProfileScreen(
                         )
                         IconButton(
                             onClick = { showEdit = true },
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .align(Alignment.Center)
                                 .onGloballyPositioned { iconWidthPx = it.size.width.toDouble() }
                                 .offset {
                                     IntOffset(
-                                        ((textWidthPx / 2 + iconWidthPx / 4 + with(density) { 8.dp.roundToPx() }).toInt()),
+                                        (
+                                            (
+                                                textWidthPx / 2 + iconWidthPx / 4 +
+                                                    with(density) { 8.dp.roundToPx() }
+                                                ).toInt()
+                                            ),
                                         0
                                     )
                                 }
@@ -139,11 +141,14 @@ fun ProfileScreen(
                     onDismissRequest = { showEdit = false },
                     title = { Text("Edit display name") },
                     text = {
+                        val overLimit = editName.length > 16
                         OutlinedTextField(
                             value = editName,
-                            onValueChange = { editName = it },
+                            onValueChange = { editName = it.take(16) },
                             label = { Text("Display name") },
                             singleLine = true,
+                            isError = overLimit,
+                            supportingText = { if (overLimit) Text("Max 16 characters") },
                             modifier = Modifier.fillMaxWidth()
                         )
                     },
@@ -153,8 +158,11 @@ fun ProfileScreen(
                                 if (editName.isNotBlank()) vm.updateDisplayName(editName)
                                 showEdit = false
                             },
-                            enabled = editName.isNotBlank() && editName != (profile?.displayName
-                                ?: "")
+                            enabled =
+                            editName.isNotBlank() && editName.length <= 16 && editName != (
+                                profile?.displayName
+                                    ?: ""
+                                )
                         ) {
                             Text("Save")
                         }
@@ -167,7 +175,11 @@ fun ProfileScreen(
         }
 
         // Filters card
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -183,7 +195,11 @@ fun ProfileScreen(
         }
 
         // Statistics card
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -208,7 +224,11 @@ fun ProfileScreen(
             }
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
             val settingsVm: AppSettingsViewModel = hiltViewModel()
             val dynamic by settingsVm.dynamicColorEnabled.collectAsState()
             val seed by settingsVm.seedColor.collectAsState()
@@ -233,7 +253,11 @@ fun ProfileScreen(
                     Text("Card colors")
                     IconButton(onClick = { colorsExpanded = !colorsExpanded }) {
                         Icon(
-                            if (colorsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            if (colorsExpanded) {
+                                Icons.Default.ExpandLess
+                            } else {
+                                Icons.Default.ExpandMore
+                            },
                             contentDescription = null
                         )
                     }
@@ -316,7 +340,9 @@ fun ProfileScreen(
                                                 Modifier
                                                     .size(28.dp)
                                                     .clip(CircleShape)
-                                                    .background(Color(r / 255f, g / 255f, b / 255f))
+                                                    .background(
+                                                        Color(r / 255f, g / 255f, b / 255f)
+                                                    )
                                             )
                                             Text("#%02X%02X%02X".format(r, g, b))
                                         }
@@ -359,7 +385,11 @@ fun ProfileScreen(
                     Text("App theme")
                     IconButton(onClick = { themeExpanded = !themeExpanded }) {
                         Icon(
-                            if (themeExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            if (themeExpanded) {
+                                Icons.Default.ExpandLess
+                            } else {
+                                Icons.Default.ExpandMore
+                            },
                             contentDescription = null
                         )
                     }
@@ -373,7 +403,8 @@ fun ProfileScreen(
                             Text("Use M3 dynamic color (wallpaper)", modifier = Modifier.weight(1f))
                             Switch(
                                 checked = dynamic,
-                                onCheckedChange = { settingsVm.setDynamicColor(it) })
+                                onCheckedChange = { settingsVm.setDynamicColor(it) }
+                            )
                         }
                         Text("Accent templates")
                         val outlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 1f)
@@ -390,7 +421,8 @@ fun ProfileScreen(
                                     AssistChip(
                                         onClick = { settingsVm.setAccentTemplate(t) },
                                         label = { Text(t.replaceFirstChar { it.uppercase() }) },
-                                        colors = AssistChipDefaults.assistChipColors(
+                                        colors =
+                                        AssistChipDefaults.assistChipColors(
                                             containerColor = MaterialTheme.colorScheme.surface,
                                             labelColor = MaterialTheme.colorScheme.onSurface
                                         )
@@ -440,22 +472,30 @@ private fun GameModeFilter(current: GameModeType?, onSelect: (GameModeType?) -> 
             onValueChange = {},
             label = { Text("Game Mode") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
+            modifier =
+            Modifier
                 .menuAnchor()
                 .width(160.dp)
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(text = { Text("All") }, onClick = { onSelect(null); expanded = false })
+            DropdownMenuItem(text = { Text("All") }, onClick = {
+                onSelect(null)
+                expanded = false
+            })
             DropdownMenuItem(
                 text = { Text("Normal") },
                 onClick = {
-                    onSelect(GameModeType.NORMAL); expanded = false
-                })
+                    onSelect(GameModeType.NORMAL)
+                    expanded = false
+                }
+            )
             DropdownMenuItem(
                 text = { Text("Ultra") },
                 onClick = {
-                    onSelect(GameModeType.ULTRA); expanded = false
-                })
+                    onSelect(GameModeType.ULTRA)
+                    expanded = false
+                }
+            )
         }
     }
 }
@@ -472,18 +512,30 @@ private fun PlayerModeFilter(current: PlayerMode?, onSelect: (PlayerMode?) -> Un
             onValueChange = {},
             label = { Text("Player Mode") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
+            modifier =
+            Modifier
                 .menuAnchor()
                 .width(180.dp)
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(text = { Text("All") }, onClick = { onSelect(null); expanded = false })
+            DropdownMenuItem(text = { Text("All") }, onClick = {
+                onSelect(null)
+                expanded = false
+            })
             DropdownMenuItem(
                 text = { Text("Solo") },
-                onClick = { onSelect(PlayerMode.SOLO); expanded = false })
+                onClick = {
+                    onSelect(PlayerMode.SOLO)
+                    expanded = false
+                }
+            )
             DropdownMenuItem(
                 text = { Text("Multiplayer") },
-                onClick = { onSelect(PlayerMode.MULTIPLAYER); expanded = false })
+                onClick = {
+                    onSelect(PlayerMode.MULTIPLAYER)
+                    expanded = false
+                }
+            )
         }
     }
 }
@@ -494,9 +546,11 @@ private fun PieChart(win: Int, loss: Int) {
     val winColor = MaterialTheme.colorScheme.primary
     val lossColor = MaterialTheme.colorScheme.secondary
 
-    Canvas(Modifier
-        .fillMaxWidth()
-        .height(140.dp)) {
+    Canvas(
+        Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+    ) {
         val cx = size.width / 2f
         val cy = size.height / 2f
         val radius = size.minDimension / 2f
@@ -556,17 +610,20 @@ private fun StatsGrid(stats: AggregatedPlayerStats?) {
             StatCard(
                 "Avg sets/game",
                 s?.averageSetsPerGame?.let { String.format("%.2f", it) } ?: "-",
-                Modifier.weight(1f))
+                Modifier.weight(1f)
+            )
             StatCard(
                 "Fastest win",
                 s?.fastestGameWonMs?.let { formatElapsedTimeMs(it) } ?: "-",
-                Modifier.weight(1f))
+                Modifier.weight(1f)
+            )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
                 "Avg length",
                 s?.averageGameLengthMs?.let { formatElapsedTimeMs(it) } ?: "-",
-                Modifier.weight(1f))
+                Modifier.weight(1f)
+            )
             StatCard("Rating", s?.rating?.toString() ?: "N/A", Modifier.weight(1f))
         }
     }
@@ -575,7 +632,9 @@ private fun StatsGrid(stats: AggregatedPlayerStats?) {
 @Composable
 private fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
         modifier = modifier
     ) {
         Column(
@@ -604,23 +663,21 @@ private fun formatDuration(ms: Long): String {
 @Preview
 @Composable
 private fun StatsGridPreview() {
-    val stats = AggregatedPlayerStats(
-        playerId = "demo",
-        finishedGames = 12,
-        totalSetsFound = 57,
-        averageSetsPerGame = 4.75,
-        fastestGameWonMs = 95_000,
-        averageGameLengthMs = 180_000,
-        rating = 1420
-    )
+    val stats =
+        AggregatedPlayerStats(
+            playerId = "demo",
+            finishedGames = 12,
+            totalSetsFound = 57,
+            averageSetsPerGame = 4.75,
+            fastestGameWonMs = 95_000,
+            averageGameLengthMs = 180_000,
+            rating = 1420
+        )
     StatsGrid(stats)
 }
-
 
 @Preview
 @Composable
 private fun ProfileScreenPreview() {
     ProfileScreen()
 }
-
-

@@ -8,11 +8,11 @@ data class PresenceUser(
     val lastOnline: Long?,
     val displayName: String?,
     val email: String?,
-    val photoUrl: String?,
+    val photoUrl: String?
 )
 
 interface PresenceRepository {
     fun observe(uid: String): Flow<PresenceUser?>
+
     fun observeMany(uids: Set<String>): Flow<Map<String, PresenceUser>>
 }
-

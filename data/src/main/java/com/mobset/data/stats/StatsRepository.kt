@@ -11,8 +11,10 @@ data class GameStats(
 
 interface StatsRepository {
     fun observeStats(uid: String): Flow<GameStats?>
+
     suspend fun incrementGamesPlayed(uid: String)
+
     suspend fun recordBestTime(uid: String, timeMs: Long)
+
     suspend fun addSetsFound(uid: String, count: Int)
 }
-

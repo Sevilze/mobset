@@ -20,6 +20,6 @@ data class UserProfile(
 
 interface ProfileRepository {
     fun observeProfile(uid: String): Flow<UserProfile?>
+
     suspend fun upsertProfile(profile: UserProfile)
 }
-

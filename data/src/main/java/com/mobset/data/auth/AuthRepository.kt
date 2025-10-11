@@ -12,12 +12,14 @@ data class AuthUser(
 
 sealed class AuthResult {
     data object Success : AuthResult()
+
     data class Error(val message: String, val cause: Throwable? = null) : AuthResult()
 }
 
 interface AuthRepository {
     val currentUser: Flow<AuthUser?>
+
     suspend fun signInWithGoogleIdToken(idToken: String): AuthResult
+
     suspend fun signOut()
 }
-

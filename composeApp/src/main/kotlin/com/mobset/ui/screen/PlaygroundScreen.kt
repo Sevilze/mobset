@@ -1,12 +1,11 @@
 package com.mobset.ui.screen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
-
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -17,8 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mobset.domain.algorithm.SetAlgorithms
 import com.mobset.domain.model.Card as SetCardModel
@@ -56,10 +55,13 @@ fun PlaygroundScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(modifier = modifier
-        .fillMaxSize()
-        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-        .padding(16.dp)) {
+    Column(
+        modifier =
+        modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+            .padding(16.dp)
+    ) {
         Text(
             text = "Playground",
             style = MaterialTheme.typography.headlineSmall,
@@ -81,7 +83,10 @@ fun PlaygroundScreen(modifier: Modifier = Modifier) {
         ) {
             items(samples) { set ->
                 Card {
-                    Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         set.forEachIndexed { idx, c ->
                             SetCardComposable(
                                 card = c,
@@ -96,4 +101,3 @@ fun PlaygroundScreen(modifier: Modifier = Modifier) {
         }
     }
 }
-

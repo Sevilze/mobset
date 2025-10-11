@@ -20,15 +20,19 @@ import androidx.compose.ui.unit.dp
 /**
  * Bottom navigation destinations for the app.
  */
-sealed class BottomDestination(
-    val route: String,
-    val label: String,
-    val icon: ImageVector,
-) {
-    data object Singleplayer : BottomDestination("singleplayer", "Singleplayer", Icons.Filled.PlayArrow)
+sealed class BottomDestination(val route: String, val label: String, val icon: ImageVector) {
+    data object Singleplayer : BottomDestination(
+        "singleplayer",
+        "Singleplayer",
+        Icons.Filled.PlayArrow
+    )
+
     data object Multiplayer : BottomDestination("multiplayer", "Multiplayer", Icons.Filled.Home)
+
     data object Playground : BottomDestination("playground", "Playground", Icons.Filled.Refresh)
+
     data object Friends : BottomDestination("friends", "Friends", Icons.Filled.Person)
+
     data object Profile : BottomDestination("profile", "Profile", Icons.Filled.AccountCircle)
 
     companion object {
@@ -40,10 +44,7 @@ sealed class BottomDestination(
  * Material 3 bottom navigation bar with expressive animations.
  */
 @Composable
-fun BottomNavBar(
-    currentRoute: String?,
-    onSelect: (BottomDestination) -> Unit,
-) {
+fun BottomNavBar(currentRoute: String?, onSelect: (BottomDestination) -> Unit) {
     NavigationBar {
         BottomDestination.items.forEach { dest ->
             val selected = currentRoute == dest.route
@@ -60,7 +61,8 @@ fun BottomNavBar(
                     Icon(
                         imageVector = dest.icon,
                         contentDescription = dest.label,
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .scale(scale)
                             .size(24.dp)
                     )

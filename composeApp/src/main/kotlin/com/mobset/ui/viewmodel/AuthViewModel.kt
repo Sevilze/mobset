@@ -15,17 +15,20 @@ import kotlinx.coroutines.launch
 
 sealed class AuthUiState {
     data object Idle : AuthUiState()
+
     data object Loading : AuthUiState()
+
     data class Error(val message: String) : AuthUiState()
 }
 
 @HiltViewModel
-class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
-) : ViewModel() {
-
-    val currentUser: StateFlow<AuthUser?> = authRepository.currentUser
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+class AuthViewModel
+@Inject
+constructor(private val authRepository: AuthRepository) :
+    ViewModel() {
+    val currentUser: StateFlow<AuthUser?> =
+        authRepository.currentUser
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _authUiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val authUiState: StateFlow<AuthUiState> = _authUiState
@@ -44,4 +47,3 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch { authRepository.signOut() }
     }
 }
-

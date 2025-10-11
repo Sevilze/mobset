@@ -5,11 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
-
 import com.mobset.theme.AppTheme
 import com.mobset.ui.viewmodel.AppSettingsViewModel
 
@@ -20,7 +19,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val settingsVm: AppSettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+            val settingsVm: AppSettingsViewModel =
+                androidx.hilt.navigation.compose
+                    .hiltViewModel()
             val dynamic by settingsVm.dynamicColorEnabled.collectAsState()
             val seed by settingsVm.seedColor.collectAsState()
             val cardColors by settingsVm.cardColors.collectAsState()

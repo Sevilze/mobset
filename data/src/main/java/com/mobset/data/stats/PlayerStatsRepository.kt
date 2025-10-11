@@ -12,4 +12,3 @@ interface PlayerStatsRepository {
         playerMode: PlayerMode? = null
     ): Flow<AggregatedPlayerStats>
 }
-

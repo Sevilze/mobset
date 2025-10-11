@@ -17,9 +17,11 @@ import org.junit.Test
 
 @HiltAndroidTest
 class AuthGatingTest {
-    @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
-    @get:Rule(order = 1) val composeRule = createAndroidComposeRule<MainActivity>()
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
 
+    @get:Rule(order = 1)
+    val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Before
     fun setup() {
@@ -39,4 +41,3 @@ class AuthGatingTest {
         composeRule.onNodeWithText("Sign out").assertIsDisplayed()
     }
 }
-

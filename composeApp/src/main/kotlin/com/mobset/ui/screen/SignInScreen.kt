@@ -1,9 +1,5 @@
 package com.mobset.ui.screen
 
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.GetCredentialResponse
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,16 +12,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -50,28 +50,34 @@ fun SignInScreen(
         onContinueWithGoogle = {
             scope.launch {
                 try {
-                    val googleIdOption = GetGoogleIdOption.Builder()
-                        .setFilterByAuthorizedAccounts(false)
-                        .setServerClientId(context.getString(R.string.default_web_client_id))
-                        .build()
-                    val request = GetCredentialRequest.Builder()
-                        .addCredentialOption(googleIdOption)
-                        .build()
-                    val resp: GetCredentialResponse = CredentialManager.create(context)
-                        .getCredential(context, request)
+                    val googleIdOption =
+                        GetGoogleIdOption
+                            .Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId(context.getString(R.string.default_web_client_id))
+                            .build()
+                    val request =
+                        GetCredentialRequest
+                            .Builder()
+                            .addCredentialOption(googleIdOption)
+                            .build()
+                    val resp: GetCredentialResponse =
+                        CredentialManager
+                            .create(context)
+                            .getCredential(context, request)
                     val cred = GoogleIdTokenCredential.createFrom(resp.credential.data)
                     viewModel.signInWithGoogleIdToken(cred.idToken)
                     onSignedIn()
                 } catch (e: GetCredentialException) {
                     // user cancelled or no credential
-                } catch (e: Exception) { /* unexpected */
+                } catch (e: Exception) {
+                    // unexpected
                 }
             }
         },
         modifier = modifier
     )
 }
-
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -81,7 +87,8 @@ fun SignInContent(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxSize()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

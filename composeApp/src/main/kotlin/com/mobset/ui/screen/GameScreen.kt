@@ -13,22 +13,20 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mobset.domain.model.*
-import com.mobset.ui.component.SetCard
-import com.mobset.ui.viewmodel.GameViewModel
-import com.mobset.ui.util.formatElapsedTimeMs
-import com.mobset.ui.component.FoundSetsPanel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mobset.domain.algorithm.SetAlgorithms
-
+import com.mobset.domain.model.*
+import com.mobset.ui.component.FoundSetsPanel
+import com.mobset.ui.component.SetCard
+import com.mobset.ui.util.formatElapsedTimeMs
+import com.mobset.ui.viewmodel.GameViewModel
 import kotlinx.coroutines.delay
-
 
 /**
  * Main game screen where the Set game is played.
@@ -105,7 +103,6 @@ fun GameScreen(
                     }
                 },
                 actions = {
-
                     IconButton(
                         onClick = { viewModel.useHint() },
                         enabled = gameState.gameStatus == GameStatus.IN_PROGRESS && hintsEnabled
@@ -138,7 +135,8 @@ fun GameScreen(
         }
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier =
+            modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
@@ -188,13 +186,17 @@ fun GameScreen(
                             title = { Text("Game Completed") },
                             text = {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Final Time: ${formatElapsedTimeMs(gameState.elapsedTime)}")
+                                    Text(
+                                        "Final Time: ${formatElapsedTimeMs(gameState.elapsedTime)}"
+                                    )
                                     Text("Sets Found: ${gameState.foundSets.size}")
                                     Text("Hints Used: ${gameState.hintsUsed}")
                                 }
                             },
                             confirmButton = {
-                                Button(onClick = { viewModel.startNewGame(gameMode, hintsEnabled) }) {
+                                Button(onClick = {
+                                    viewModel.startNewGame(gameMode, hintsEnabled)
+                                }) {
                                     Text("Play Again")
                                 }
                             },
@@ -231,8 +233,10 @@ private fun GameStatusCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = when (gameResult) {
+        colors =
+        CardDefaults.cardColors(
+            containerColor =
+            when (gameResult) {
                 is GameResult.SetFound -> MaterialTheme.colorScheme.primaryContainer
                 is GameResult.InvalidSet -> MaterialTheme.colorScheme.errorContainer
                 is GameResult.Hint -> MaterialTheme.colorScheme.secondaryContainer
@@ -311,7 +315,8 @@ private fun GameCompletedScreen(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
+            colors =
+            CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
         ) {
@@ -372,7 +377,8 @@ private fun GameCompletedScreen(
 @Preview
 fun GameStatusCardPreview() {
     GameStatusCard(
-        gameState = GameState(
+        gameState =
+        GameState(
             mode = GameMode.NORMAL,
             board = SetAlgorithms.generateDeck(GameMode.NORMAL).take(12),
             gameStatus = GameStatus.IN_PROGRESS,
@@ -381,4 +387,3 @@ fun GameStatusCardPreview() {
         gameResult = null
     )
 }
-

@@ -9,4 +9,3 @@ fun formatElapsedTimeMs(elapsedTimeMs: Long): String {
     val secondsWithMs = totalSeconds % 60
     return String.format("%02d:%05.2f", minutes, secondsWithMs)
 }
-

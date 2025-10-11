@@ -8,10 +8,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import javax.inject.Singleton
 
 @Module
 @TestInstallIn(
@@ -26,14 +26,18 @@ object TestAuthModule {
 
 object TestAuthState {
     val state = MutableStateFlow<AuthUser?>(null)
-    fun setUser(user: AuthUser?) { state.value = user }
+
+    fun setUser(user: AuthUser?) {
+        state.value = user
+    }
 }
 
 class FakeAuthRepository : AuthRepository {
     override val currentUser: Flow<AuthUser?> = TestAuthState.state as StateFlow<AuthUser?>
 
     override suspend fun signInWithGoogleIdToken(idToken: String): AuthResult {
-        TestAuthState.state.value = AuthUser(uid = "test", displayName = "Tester", email = "t@example.com", photoUrl = null)
+        TestAuthState.state.value =
+            AuthUser(uid = "test", displayName = "Tester", email = "t@example.com", photoUrl = null)
         return AuthResult.Success
     }
 
@@ -41,6 +45,7 @@ class FakeAuthRepository : AuthRepository {
         TestAuthState.state.value = null
     }
 
-    fun setUser(user: AuthUser?) { TestAuthState.state.value = user }
+    fun setUser(user: AuthUser?) {
+        TestAuthState.state.value = user
+    }
 }
-

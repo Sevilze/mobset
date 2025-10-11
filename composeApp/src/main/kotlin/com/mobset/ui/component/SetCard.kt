@@ -53,26 +53,36 @@ fun SetCard(
 
     Card(
         onClick = onClick,
-        modifier = modifier
+        modifier =
+        modifier
             .aspectRatio(1.6f)
             .scale(scale),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
+        colors =
+        CardDefaults.cardColors(
+            containerColor =
+            when {
                 isSelected -> MaterialTheme.colorScheme.primaryContainer
                 isHinted -> MaterialTheme.colorScheme.secondaryContainer
                 else -> MaterialTheme.colorScheme.surface
             }
         ),
-        border = when {
-            isSelected -> CardDefaults.outlinedCardBorder().copy(
-                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
-                width = 2.dp
-            )
-            isHinted -> CardDefaults.outlinedCardBorder().copy(
-                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.secondary),
-                width = 2.dp
-            )
+        border =
+        when {
+            isSelected ->
+                CardDefaults.outlinedCardBorder().copy(
+                    brush =
+                    androidx.compose.ui.graphics
+                        .SolidColor(MaterialTheme.colorScheme.primary),
+                    width = 2.dp
+                )
+            isHinted ->
+                CardDefaults.outlinedCardBorder().copy(
+                    brush =
+                    androidx.compose.ui.graphics
+                        .SolidColor(MaterialTheme.colorScheme.secondary),
+                    width = 2.dp
+                )
             else -> null
         }
     ) {
@@ -87,7 +97,8 @@ fun SetCard(
             CardSymbols(
                 card = card,
                 symbolSize = contentHeight * 0.6f,
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxSize()
                     .padding(margin)
             )
@@ -100,11 +111,7 @@ fun SetCard(
  * patterns are continuous across symbols.
  */
 @Composable
-private fun CardSymbols(
-    card: Card,
-    symbolSize: Dp,
-    modifier: Modifier = Modifier
-) {
+private fun CardSymbols(card: Card, symbolSize: Dp, modifier: Modifier = Modifier) {
     val color = card.getColor()
     val shape = card.getShape()
     val shade = card.getShade()
@@ -159,10 +166,24 @@ private fun CardSymbols(
 
         if (shouldRotate) {
             rotate(degrees = 90f) {
-                renderPathsByShade(shade, symbolPaths, combined, symbolColor, outlinePx, rotated = true)
+                renderPathsByShade(
+                    shade,
+                    symbolPaths,
+                    combined,
+                    symbolColor,
+                    outlinePx,
+                    rotated = true
+                )
             }
         } else {
-            renderPathsByShade(shade, symbolPaths, combined, symbolColor, outlinePx, rotated = false)
+            renderPathsByShade(
+                shade,
+                symbolPaths,
+                combined,
+                symbolColor,
+                outlinePx,
+                rotated = false
+            )
         }
     }
 }
@@ -287,39 +308,60 @@ private fun createOvalPath(path: Path, scaleX: Float, scaleY: Float) {
 private fun createSquigglePath(path: Path, scaleX: Float, scaleY: Float) {
     path.moveTo(67.892902f * scaleX, 12.746785f * scaleY)
     path.relativeCubicTo(
-        43.231313f * scaleX, -6.717223f * scaleY,
-        107.352741f * scaleX, 6.609823f * scaleY,
-        121.028973f * scaleX, 58.746408f * scaleY
+        43.231313f * scaleX,
+        -6.717223f * scaleY,
+        107.352741f * scaleX,
+        6.609823f * scaleY,
+        121.028973f * scaleX,
+        58.746408f * scaleY
     )
     path.relativeCubicTo(
-        13.676233f * scaleX, 52.136585f * scaleY,
-        -44.848649f * scaleX, 161.467192f * scaleY,
-        -45.07116f * scaleX, 204.650732f * scaleY
+        13.676233f * scaleX,
+        52.136585f * scaleY,
+        -44.848649f * scaleX,
+        161.467192f * scaleY,
+        -45.07116f * scaleX,
+        204.650732f * scaleY
     )
     path.relativeCubicTo(
-        4.566246f * scaleX, 56.959708f * scaleY,
-        83.805481f * scaleX, 87.929227f * scaleY,
-        22.329944f * scaleX, 105.806022f * scaleY
+        4.566246f * scaleX,
+        56.959708f * scaleY,
+        83.805481f * scaleX,
+        87.929227f * scaleY,
+        22.329944f * scaleX,
+        105.806022f * scaleY
     )
     path.relativeCubicTo(
-        -61.475536f * scaleX, 17.876795f * scaleY,
-        -126.122496f * scaleX, -1.855045f * scaleY,
-        -143.73294f * scaleX, -41.933823f * scaleY
+        -61.475536f * scaleX,
+        17.876795f * scaleY,
+        -126.122496f * scaleX,
+        -1.855045f * scaleY,
+        -143.73294f * scaleX,
+        -41.933823f * scaleY
     )
     path.relativeCubicTo(
-        -17.610444f * scaleX, -40.07878f * scaleY,
-        49.274638f * scaleX, -120.109409f * scaleY,
-        46.14822f * scaleX, -188.091997f * scaleY
+        -17.610444f * scaleX,
+        -40.07878f * scaleY,
+        49.274638f * scaleX,
+        -120.109409f * scaleY,
+        46.14822f * scaleX,
+        -188.091997f * scaleY
     )
     path.relativeCubicTo(
-        -3.126418f * scaleX, -67.982588f * scaleY,
-        -21.873669f * scaleX, -70.257464f * scaleY,
-        -49.613153f * scaleX, -80.177084f * scaleY
+        -3.126418f * scaleX,
+        -67.982588f * scaleY,
+        -21.873669f * scaleX,
+        -70.257464f * scaleY,
+        -49.613153f * scaleX,
+        -80.177084f * scaleY
     )
     path.relativeCubicTo(
-        -27.739485f * scaleX, -9.919618f * scaleY,
-        5.678801f * scaleX, -52.283035f * scaleY,
-        48.910115f * scaleX, -59.000258f * scaleY
+        -27.739485f * scaleX,
+        -9.919618f * scaleY,
+        5.678801f * scaleX,
+        -52.283035f * scaleY,
+        48.910115f * scaleX,
+        -59.000258f * scaleY
     )
     path.close()
 }
@@ -336,66 +378,102 @@ private fun createDiamondPath(path: Path, scaleX: Float, scaleY: Float) {
 private fun createHourglassPath(path: Path, scaleX: Float, scaleY: Float) {
     path.moveTo(118.4386f * scaleX, 201.1739f * scaleY)
     path.relativeCubicTo(
-        0f * scaleX, -19.9228f * scaleY,
-        17.9239f * scaleX, -37.4523f * scaleY,
-        26.8821f * scaleX, -47.8051f * scaleY
+        0f * scaleX,
+        -19.9228f * scaleY,
+        17.9239f * scaleX,
+        -37.4523f * scaleY,
+        26.8821f * scaleX,
+        -47.8051f * scaleY
     )
     path.relativeCubicTo(
-        23.5179f * scaleX, -24.6961f * scaleY,
-        40.3179f * scaleX, -68.5227f * scaleY,
-        43.6821f * scaleX, -119.5128f * scaleY
+        23.5179f * scaleX,
+        -24.6961f * scaleY,
+        40.3179f * scaleX,
+        -68.5227f * scaleY,
+        43.6821f * scaleX,
+        -119.5128f * scaleY
     )
     path.relativeCubicTo(
-        0.5578f * scaleX, -10.3522f * scaleY,
-        -3.9211f * scaleX, -19.9228f * scaleY,
-        -9.5239f * scaleX, -19.9228f * scaleY
+        0.5578f * scaleX,
+        -10.3522f * scaleY,
+        -3.9211f * scaleX,
+        -19.9228f * scaleY,
+        -9.5239f * scaleX,
+        -19.9228f * scaleY
     )
     path.lineTo(19.3203f * scaleX, 13.8332f * scaleY)
     path.relativeCubicTo(
-        -5.6028f * scaleX, 0f * scaleY,
-        -10.0817f * scaleX, 9.5703f * scaleY,
-        -9.5239f * scaleX, 19.9228f * scaleY
+        -5.6028f * scaleX,
+        0f * scaleY,
+        -10.0817f * scaleX,
+        9.5703f * scaleY,
+        -9.5239f * scaleX,
+        19.9228f * scaleY
     )
     path.relativeCubicTo(
-        3.3634f * scaleX, 50.9901f * scaleY,
-        20.1634f * scaleX, 94.8155f * scaleY,
-        43.6821f * scaleX, 120.3075f * scaleY
+        3.3634f * scaleX,
+        50.9901f * scaleY,
+        20.1634f * scaleX,
+        94.8155f * scaleY,
+        43.6821f * scaleX,
+        120.3075f * scaleY
     )
     path.relativeCubicTo(
-        8.9578f * scaleX, 9.5586f * scaleY,
-        26.8821f * scaleX, 27.0888f * scaleY,
-        26.8821f * scaleX, 47.0104f * scaleY
+        8.9578f * scaleX,
+        9.5586f * scaleY,
+        26.8821f * scaleX,
+        27.0888f * scaleY,
+        26.8821f * scaleX,
+        47.0104f * scaleY
     )
     path.relativeCubicTo(
-        0f * scaleX, 19.1172f * scaleY,
-        -17.9239f * scaleX, 36.6486f * scaleY,
-        -26.8821f * scaleX, 47.0104f * scaleY
+        0f * scaleX,
+        19.1172f * scaleY,
+        -17.9239f * scaleX,
+        36.6486f * scaleY,
+        -26.8821f * scaleX,
+        47.0104f * scaleY
     )
     path.relativeCubicTo(
-        -23.5179f * scaleX, 25.4897f * scaleY,
-        -40.3179f * scaleX, 69.3144f * scaleY,
-        -43.6821f * scaleX, 120.3075f * scaleY
+        -23.5179f * scaleX,
+        25.4897f * scaleY,
+        -40.3179f * scaleX,
+        69.3144f * scaleY,
+        -43.6821f * scaleX,
+        120.3075f * scaleY
     )
     path.relativeCubicTo(
-        -0.5578f * scaleX, 10.3522f * scaleY,
-        3.9211f * scaleX, 19.9228f * scaleY,
-        9.5239f * scaleX, 19.9228f * scaleY
+        -0.5578f * scaleX,
+        10.3522f * scaleY,
+        3.9211f * scaleX,
+        19.9228f * scaleY,
+        9.5239f * scaleX,
+        19.9228f * scaleY
     )
     path.lineTo(178.9203f * scaleX, 386.1668f * scaleY)
     path.relativeCubicTo(
-        6.1606f * scaleX, 0f * scaleY,
-        10.6394f * scaleX, -9.5586f * scaleY,
-        9.5239f * scaleX, -19.9228f * scaleY
+        6.1606f * scaleX,
+        0f * scaleY,
+        10.6394f * scaleX,
+        -9.5586f * scaleY,
+        9.5239f * scaleX,
+        -19.9228f * scaleY
     )
     path.relativeCubicTo(
-        -3.3634f * scaleX, -50.9901f * scaleY,
-        -20.1634f * scaleX, -94.8155f * scaleY,
-        -43.6821f * scaleX, -120.3075f * scaleY
+        -3.3634f * scaleX,
+        -50.9901f * scaleY,
+        -20.1634f * scaleX,
+        -94.8155f * scaleY,
+        -43.6821f * scaleX,
+        -120.3075f * scaleY
     )
     path.relativeCubicTo(
-        -8.9659f * scaleX, -9.5586f * scaleY,
-        -26.3235f * scaleX, -27.0888f * scaleY,
-        -26.3235f * scaleX, -47.0104f * scaleY
+        -8.9659f * scaleX,
+        -9.5586f * scaleY,
+        -26.3235f * scaleX,
+        -27.0888f * scaleY,
+        -26.3235f * scaleX,
+        -47.0104f * scaleY
     )
     path.close()
 }
@@ -421,10 +499,14 @@ private fun SetCardPreview() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                SetCard(card = Card("0000"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
-                SetCard(card = Card("0100"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
-                SetCard(card = Card("0200"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
-                SetCard(card = Card("0300"), isSelected = false, onClick = {}, modifier = Modifier.width(96.dp))
+                SetCard(card = Card("0000"), isSelected = false, onClick = {
+                }, modifier = Modifier.width(96.dp))
+                SetCard(card = Card("0100"), isSelected = false, onClick = {
+                }, modifier = Modifier.width(96.dp))
+                SetCard(card = Card("0200"), isSelected = false, onClick = {
+                }, modifier = Modifier.width(96.dp))
+                SetCard(card = Card("0300"), isSelected = false, onClick = {
+                }, modifier = Modifier.width(96.dp))
             }
         }
     }

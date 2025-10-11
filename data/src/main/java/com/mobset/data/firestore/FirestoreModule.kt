@@ -17,10 +17,11 @@ object FirestoreModule {
     fun provideFirestore(app: Application): FirebaseFirestore {
         val db = FirebaseFirestore.getInstance()
         // Offline persistence is enabled by default on Android, but ensure settings are applied.
-        db.firestoreSettings = FirebaseFirestoreSettings.Builder()
-            .setPersistenceEnabled(true)
-            .build()
+        db.firestoreSettings =
+            FirebaseFirestoreSettings
+                .Builder()
+                .setPersistenceEnabled(true)
+                .build()
         return db
     }
 }
-

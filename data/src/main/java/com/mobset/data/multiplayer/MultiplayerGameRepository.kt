@@ -6,17 +6,15 @@ import kotlinx.coroutines.flow.Flow
  * Realtime multiplayer game data access via Firebase Realtime Database.
  */
 
-data class MpEvent(
-    val userId: String,
-    val time: Long,
-    val cards: List<String>
-)
+data class MpEvent(val userId: String, val time: Long, val cards: List<String>)
 
 data class MultiplayerGameData(
     val roomId: String,
+    val gameId: String,
     val mode: String,
     val status: String,
     val startedAt: Long?,
+    val endedAt: Long?,
     val hostId: String?,
     val events: List<MpEvent>
 )
@@ -27,5 +25,6 @@ interface MultiplayerGameRepository {
     suspend fun submitSet(roomId: String, uid: String, cards: List<String>)
 
     suspend fun markCompleted(roomId: String)
-}
 
+    suspend fun getParticipants(roomId: String): List<String>
+}

@@ -5,24 +5,30 @@ import androidx.lifecycle.viewModelScope
 import com.mobset.data.auth.AuthRepository
 import com.mobset.data.chat.ChatMessage
 import com.mobset.data.chat.ChatRepository
+import com.mobset.data.presence.PresenceRepository
 import com.mobset.data.rooms.RoomState
 import com.mobset.data.rooms.RoomsRepository
-import com.mobset.data.profile.ProfileRepository
+import com.mobset.data.rooms.Status
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
-class RoomViewModel @Inject constructor(
+class RoomViewModel
+@Inject
+constructor(
     private val auth: AuthRepository,
     private val rooms: RoomsRepository,
     private val chat: ChatRepository,
-    private val profiles: ProfileRepository,
+    private val presenceRepo: PresenceRepository,
+    private val presence: com.mobset.data.presence.PresenceTracker
 ) : ViewModel() {
-
     val currentUser = auth.currentUser
 
     private val roomId = MutableStateFlow<String?>(null)
@@ -30,51 +36,83 @@ class RoomViewModel @Inject constructor(
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing
 
-    val room: StateFlow<RoomState?> = combine(roomId, refreshTick) { id, _ -> id }
-        .filterNotNull()
-        .flatMapLatest { id -> rooms.observeRoom(id) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val room: StateFlow<RoomState?> =
+        combine(roomId, refreshTick) { id, _ -> id }
+            .filterNotNull()
+            .flatMapLatest { id -> rooms.observeRoom(id) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val messages: StateFlow<List<ChatMessage>> = combine(roomId, refreshTick) { id, _ -> id }
-        .filterNotNull()
-        .flatMapLatest { id -> chat.observeRoomChat(id) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Observe post-game acknowledgements for enabling Start button only when all current members acknowledged
+    private val acks: StateFlow<Map<String, Boolean>> =
+        roomId
+            .filterNotNull()
+            .flatMapLatest { id -> rooms.observePostGameAck(id) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    // Map of uid -> display name for users seen in the room (players + chat authors + host)
-    private val _userNames = MutableStateFlow<Map<String, String>>(emptyMap())
-    val userNames: StateFlow<Map<String, String>> = _userNames
+    // Observe ack meta (startedAt) to allow 20s timeout override
+    private val ackStartedAt: StateFlow<Long?> =
+        roomId
+            .filterNotNull()
+            .flatMapLatest { id -> rooms.observePostGameAckMeta(id) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val nameJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
+    // Server time offset and ticking clock for timeout computation based on server time
+    private val serverOffset: StateFlow<Long> =
+        rooms
+            .observeServerTimeOffset()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
-    init {
-        // Observe room and messages to lazily fetch display names
-        viewModelScope.launch {
-            room.collect { s ->
-                val ids = buildSet {
+    private val serverNowTick: Flow<Long> =
+        flow {
+            while (true) {
+                emit(System.currentTimeMillis())
+                delay(1000)
+            }
+        }
+
+    val canStartNext: StateFlow<Boolean> =
+        combine(room, acks, ackStartedAt, serverOffset, serverNowTick) {
+                s,
+                ackMap,
+                startedAt,
+                offset,
+                now
+            ->
+            if (s == null) return@combine false
+            if (s.status != Status.WAITING) return@combine false
+            if (ackMap.isEmpty()) return@combine true
+            val currentUsers = s.users.keys
+            val serverNow = now + offset
+            val timedOut = startedAt != null && (serverNow - startedAt) >= 20_000L
+            if (timedOut) return@combine true
+            // Only consider acks that exist; all existing acks for current users must be true
+            ackMap
+                .filter { (uid, _) -> currentUsers.contains(uid) }
+                .all { (_, v) -> v }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val messages: StateFlow<List<ChatMessage>> =
+        combine(roomId, refreshTick) { id, _ -> id }
+            .filterNotNull()
+            .flatMapLatest { id -> chat.observeRoomChat(id) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val userNames: StateFlow<Map<String, String>> =
+        combine(room, messages) { s, msgs ->
+            val ids =
+                buildSet {
                     s?.users?.keys?.let { addAll(it) }
                     s?.hostId?.let { add(it) }
+                    msgs.forEach { add(it.userId) }
                 }
-                ids.forEach { ensureNameSubscription(it) }
-            }
-        }
-        viewModelScope.launch {
-            messages.collect { list ->
-                list.forEach { ensureNameSubscription(it.userId) }
-            }
-        }
-    }
+            ids
+        }.flatMapLatest { ids -> presenceRepo.observeMany(ids) }
+            .map { users -> users.mapValues { (_, u) -> u.displayName ?: "Unknown" } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    private fun ensureNameSubscription(uid: String) {
-        if (nameJobs.containsKey(uid)) return
-        nameJobs[uid] = viewModelScope.launch {
-            profiles.observeProfile(uid).collect { p ->
-                val name = p?.displayName ?: uid
-                _userNames.value = _userNames.value + (uid to name)
-            }
-        }
+    fun setRoom(id: String) {
+        roomId.value = id
     }
-
-    fun setRoom(id: String) { roomId.value = id }
 
     fun refresh() {
         viewModelScope.launch {
@@ -117,6 +155,14 @@ class RoomViewModel @Inject constructor(
         }
     }
 
+    fun updateMode(mode: String) {
+        viewModelScope.launch {
+            val id = roomId.value ?: return@launch
+            val uid = auth.currentUser.firstOrNull()?.uid ?: return@launch
+            rooms.updateMode(id, uid, mode)
+        }
+    }
+
     fun send(text: String) {
         viewModelScope.launch {
             val id = roomId.value ?: return@launch
@@ -125,4 +171,3 @@ class RoomViewModel @Inject constructor(
         }
     }
 }
-

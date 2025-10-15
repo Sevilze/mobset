@@ -5,6 +5,9 @@ import com.mobset.domain.model.GameMode
 import com.mobset.domain.model.SetType
 import kotlin.random.Random
 
+// Data class representing the decomposition of an Ultra set into its conjugate card and two pairs.
+data class UltraParts(val conjugate: Card, val pair1: Pair<Card, Card>, val pair2: Pair<Card, Card>)
+
 /**
  * Core Set game algorithms.
  */
@@ -240,5 +243,123 @@ object SetAlgorithms {
 
         // If no valid board found, return the first boardSize cards
         return deck.take(boardSize)
+    }
+
+    /**
+     * Computes the Ultra set decomposition into conjugate card and two pairs.
+     * Returns null if the cards don't form a valid Ultra set.
+     *
+     */
+    fun computeUltraParts(cards: List<Card>): UltraParts? {
+        if (cards.size != 4) return null
+
+        // Consider the three disjoint pair partitions: (0,1)-(2,3), (0,2)-(1,3), (0,3)-(1,2)
+        val pairPartitions = listOf(
+            listOf(0 to 1, 2 to 3),
+            listOf(0 to 2, 1 to 3),
+            listOf(0 to 3, 1 to 2)
+        )
+
+        for (partition in pairPartitions) {
+            val conj1 = conjugateCard(
+                cards[partition[0].first],
+                cards[partition[0].second],
+                GameMode.ULTRA
+            )
+            val conj2 = conjugateCard(
+                cards[partition[1].first],
+                cards[partition[1].second],
+                GameMode.ULTRA
+            )
+
+            if (conj1 == conj2) {
+                return UltraParts(
+                    conjugate = conj1,
+                    pair1 = cards[partition[0].first] to cards[partition[0].second],
+                    pair2 = cards[partition[1].first] to cards[partition[1].second]
+                )
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Finds all sets that include the given seed cards.
+     */
+    fun findSetsWithSeeds(deck: List<Card>, seeds: List<Card>, mode: GameMode): List<List<Card>> {
+        val results = mutableListOf<List<Card>>()
+
+        if (seeds.isEmpty()) return results
+
+        if (mode == GameMode.NORMAL) {
+            when (seeds.size) {
+                1 -> {
+                    val seed = seeds.first()
+                    val seen = mutableSetOf<String>()
+                    for (i in deck.indices) {
+                        val card2 = deck[i]
+                        if (card2 == seed) continue
+                        val card3 = conjugateCard(seed, card2, mode)
+                        if (card3 in deck) {
+                            val triple = listOf(seed, card2, card3).sortedBy { it.encoding }
+                            val key = triple.joinToString("-") { it.encoding }
+                            if (seen.add(key)) {
+                                results += triple
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    val card1 = seeds[0]
+                    val card2 = seeds[1]
+                    val card3 = conjugateCard(card1, card2, mode)
+                    if (card3 in deck) {
+                        results += listOf(card1, card2, card3)
+                    }
+                }
+            }
+        } else {
+            when (seeds.size) {
+                1 -> {
+                    val seed = seeds.first()
+                    val others = deck.filter { it != seed }
+                    for (i in 0 until others.size) {
+                        for (j in i + 1 until others.size) {
+                            for (k in j + 1 until others.size) {
+                                val candidate = listOf(seed, others[i], others[j], others[k])
+                                if (checkSetUltra(candidate, mode)) {
+                                    results += candidate
+                                }
+                            }
+                        }
+                    }
+                }
+                2 -> {
+                    val (seed1, seed2) = seeds
+                    val others = deck.filter { it != seed1 && it != seed2 }
+                    for (i in 0 until others.size) {
+                        for (j in i + 1 until others.size) {
+                            val candidate = listOf(seed1, seed2, others[i], others[j])
+                            if (checkSetUltra(candidate, mode)) {
+                                results += candidate
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    val (seed1, seed2, seed3) = seeds
+                    val others = deck.filter { it != seed1 && it != seed2 && it != seed3 }
+                    for (other in others) {
+                        val candidate = listOf(seed1, seed2, seed3, other)
+                        if (checkSetUltra(candidate, mode)) {
+                            results += candidate
+                        }
+                    }
+                }
+            }
+        }
+
+        return results
     }
 }

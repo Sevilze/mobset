@@ -74,7 +74,7 @@ fun SetCard(
                     brush =
                     androidx.compose.ui.graphics
                         .SolidColor(MaterialTheme.colorScheme.primary),
-                    width = 2.dp
+                    width = 3.dp
                 )
             isHinted ->
                 CardDefaults.outlinedCardBorder().copy(
@@ -109,9 +109,10 @@ fun SetCard(
 /**
  * Renders the symbols on a Set card using one Canvas so stripe/checker
  * patterns are continuous across symbols.
+ * Internal visibility allows reuse in other card components within this package.
  */
 @Composable
-private fun CardSymbols(card: Card, symbolSize: Dp, modifier: Modifier = Modifier) {
+internal fun CardSymbols(card: Card, symbolSize: Dp, modifier: Modifier = Modifier) {
     val color = card.getColor()
     val shape = card.getShape()
     val shade = card.getShade()
@@ -188,7 +189,7 @@ private fun CardSymbols(card: Card, symbolSize: Dp, modifier: Modifier = Modifie
     }
 }
 
-private fun DrawScope.renderPathsByShade(
+internal fun DrawScope.renderPathsByShade(
     shade: CardShade,
     symbolPaths: List<Path>,
     combined: Path,
@@ -221,7 +222,7 @@ private fun DrawScope.renderPathsByShade(
 /**
  * Draw stripes once across full DrawScope.size then clip to the shapes.
  */
-private fun DrawScope.drawStripedPatternContinuous(color: Color, horizontal: Boolean) {
+internal fun DrawScope.drawStripedPatternContinuous(color: Color, horizontal: Boolean) {
     // Scale stripe thickness and spacing with canvas size for visual consistency across usages
     val unit = (size.minDimension.coerceAtLeast(1f)) / 100f
     val stripeThickness = (unit * 1.6f).coerceAtLeast(0.75f)
@@ -251,7 +252,7 @@ private fun DrawScope.drawStripedPatternContinuous(color: Color, horizontal: Boo
 }
 
 /** Draw a simple checkered pattern across DrawScope.size */
-private fun DrawScope.drawCheckeredPattern(color: Color) {
+internal fun DrawScope.drawCheckeredPattern(color: Color) {
     val squareW = 50.dp.toPx()
     val squareH = 100.dp.toPx()
 
@@ -275,7 +276,7 @@ private fun DrawScope.drawCheckeredPattern(color: Color) {
 /**
  * Creates a path for the specified shape using authentic SVG path data.
  */
-private fun createShapePath(shape: CardShape, size: Size): Path {
+internal fun createShapePath(shape: CardShape, size: Size): Path {
     val path = Path()
 
     // SVG viewBox is 200x400, transform to current size
@@ -292,7 +293,7 @@ private fun createShapePath(shape: CardShape, size: Size): Path {
     return path
 }
 
-private fun createOvalPath(path: Path, scaleX: Float, scaleY: Float) {
+internal fun createOvalPath(path: Path, scaleX: Float, scaleY: Float) {
     path.addRoundRect(
         RoundRect(
             left = 11.49999f * scaleX,
@@ -305,7 +306,7 @@ private fun createOvalPath(path: Path, scaleX: Float, scaleY: Float) {
     )
 }
 
-private fun createSquigglePath(path: Path, scaleX: Float, scaleY: Float) {
+internal fun createSquigglePath(path: Path, scaleX: Float, scaleY: Float) {
     path.moveTo(67.892902f * scaleX, 12.746785f * scaleY)
     path.relativeCubicTo(
         43.231313f * scaleX,
@@ -366,7 +367,7 @@ private fun createSquigglePath(path: Path, scaleX: Float, scaleY: Float) {
     path.close()
 }
 
-private fun createDiamondPath(path: Path, scaleX: Float, scaleY: Float) {
+internal fun createDiamondPath(path: Path, scaleX: Float, scaleY: Float) {
     path.moveTo(100f * scaleX, 10f * scaleY)
     path.relativeLineTo(-90f * scaleX, 190f * scaleY)
     path.relativeLineTo(90f * scaleX, 190f * scaleY)
@@ -375,7 +376,7 @@ private fun createDiamondPath(path: Path, scaleX: Float, scaleY: Float) {
     path.close()
 }
 
-private fun createHourglassPath(path: Path, scaleX: Float, scaleY: Float) {
+internal fun createHourglassPath(path: Path, scaleX: Float, scaleY: Float) {
     path.moveTo(118.4386f * scaleX, 201.1739f * scaleY)
     path.relativeCubicTo(
         0f * scaleX,
@@ -482,7 +483,7 @@ private fun createHourglassPath(path: Path, scaleX: Float, scaleY: Float) {
  * Maps card color to actual Color.
  */
 @Composable
-private fun getSymbolColor(cardColor: CardColor): Color {
+internal fun getSymbolColor(cardColor: CardColor): Color {
     val palette = LocalCardColors.current
     val idx = cardColor.value
     return palette.getOrNull(idx)

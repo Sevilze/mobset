@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.mobset.domain.algorithm.SetAlgorithms
+import com.mobset.domain.algorithm.UltraParts
 import com.mobset.domain.model.Card
 import com.mobset.domain.model.FoundSet
 import com.mobset.domain.model.GameMode
@@ -144,9 +145,9 @@ private fun FoundSetPreview(fs: FoundSet, mode: GameMode, showTimestamps: Boolea
 
 @Composable
 private fun UltraSetPreview(cards: List<Card>, mode: GameMode) {
-    val parts = remember(cards, mode) { computeUltraConjugateAndPairs(cards, mode) }
+    val parts = remember(cards) { SetAlgorithms.computeUltraParts(cards) }
     if (parts != null) {
-        val (conj, p1, p2) = parts
+        val (conjugate, pair1, pair2) = parts
         // Compact H-structure: two vertical columns for the pairs, single center conjugate
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -156,20 +157,20 @@ private fun UltraSetPreview(cards: List<Card>, mode: GameMode) {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                SetCard(card = p1.first, isSelected = false, onClick = {
+                SetCard(card = pair1.first, isSelected = false, onClick = {
                 }, isHinted = false, modifier = Modifier.width(44.dp))
-                SetCard(card = p1.second, isSelected = false, onClick = {
+                SetCard(card = pair1.second, isSelected = false, onClick = {
                 }, isHinted = false, modifier = Modifier.width(44.dp))
             }
-            SetCard(card = conj, isSelected = false, onClick = {
+            SetCard(card = conjugate, isSelected = false, onClick = {
             }, isHinted = false, modifier = Modifier.width(52.dp))
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                SetCard(card = p2.first, isSelected = false, onClick = {
+                SetCard(card = pair2.first, isSelected = false, onClick = {
                 }, isHinted = false, modifier = Modifier.width(44.dp))
-                SetCard(card = p2.second, isSelected = false, onClick = {
+                SetCard(card = pair2.second, isSelected = false, onClick = {
                 }, isHinted = false, modifier = Modifier.width(44.dp))
             }
         }
@@ -185,26 +186,4 @@ private fun UltraSetPreview(cards: List<Card>, mode: GameMode) {
             }
         }
     }
-}
-
-private data class UltraParts(val conj: Card, val p1: Pair<Card, Card>, val p2: Pair<Card, Card>)
-
-private fun computeUltraConjugateAndPairs(cards: List<Card>, mode: GameMode): UltraParts? {
-    if (cards.size != 4) return null
-    val partitions =
-        listOf(
-            listOf(0 to 1, 2 to 3),
-            listOf(0 to 2, 1 to 3),
-            listOf(0 to 3, 1 to 2)
-        )
-    for (p in partitions) {
-        val conj1 = SetAlgorithms.conjugateCard(cards[p[0].first], cards[p[0].second], mode)
-        val conj2 = SetAlgorithms.conjugateCard(cards[p[1].first], cards[p[1].second], mode)
-        if (conj1 == conj2) {
-            val pair1 = cards[p[0].first] to cards[p[0].second]
-            val pair2 = cards[p[1].first] to cards[p[1].second]
-            return UltraParts(conj1, pair1, pair2)
-        }
-    }
-    return null
 }
